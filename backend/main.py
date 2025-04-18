@@ -28,15 +28,14 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 app = FastAPI()
-
-# Allow CORS so frontend can connect
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["https://infobot-h7cr.onrender.com"],
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["*"]
 )
+print("✅ CORS enabled for:", "https://infobot-h7cr.onrender.com")
 
 # Create DB table(s)
 logger.info("Initializing database...")
