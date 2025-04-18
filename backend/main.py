@@ -32,7 +32,7 @@ app = FastAPI()
 # Allow CORS so frontend can connect
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://infobot-h7cr.onrender.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
