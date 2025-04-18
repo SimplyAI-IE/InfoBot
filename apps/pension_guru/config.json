@@ -1,0 +1,7 @@
+{
+    "name": "Concierge",
+    "tone_instruction_default": "adult",
+    "logo_url": "https://example.com/logo.png",
+    "init_message": "Hi, I'm your Concierge. Ready to help you book something?",
+    "system_prompt_file": "prompt.txt"
+  }
