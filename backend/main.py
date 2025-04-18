@@ -259,18 +259,6 @@ async def forget_chat_history(request: Request):
         db.close()
 
     return {"status": "ok", "message": "Chat history and profile cleared."}
-
-    from fastapi.staticfiles import StaticFiles
-    from fastapi.responses import FileResponse
-    import os
-
-    static_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../public"))
-
-    app.mount("/static", StaticFiles(directory=static_dir), name="static")
-
-    @app.get("/")
-    async def serve_index():
-        return FileResponse(os.path.join(static_dir, "index.html"))
     
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
