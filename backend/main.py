@@ -165,10 +165,6 @@ async def auth_google(user_data: dict):
 
     return {"status": "ok", "user_id": user_id}
 
-@app.get("/")
-async def root():
-    return {"message": f"{config.get('name', 'Assistant')} API is running"}
-
 @app.get("/export-pdf")
 async def export_pdf(user_id: str):
     profile = get_user_profile(user_id)
