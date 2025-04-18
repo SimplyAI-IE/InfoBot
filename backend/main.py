@@ -282,6 +282,8 @@ app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 @app.get("/")
 async def serve_index():
-    return FileResponse(os.path.join(static_dir, "index.html"))
+    file_path = os.path.join(static_dir, "index.html")
+    print("Serving frontend from:", file_path)
+    return FileResponse(file_path)
 
 # --- End of main.py ---
