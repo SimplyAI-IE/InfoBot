@@ -2,16 +2,14 @@
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
-
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import json
 from dotenv import load_dotenv
 from gpt_engine import get_gpt_response
 from memory import get_user_profile, save_user_profile, save_chat_message, get_chat_history
 from models import init_db, User, SessionLocal, UserProfile, ChatHistory
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from weasyprint import HTML
 from io import BytesIO
