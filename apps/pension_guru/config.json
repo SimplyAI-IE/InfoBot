@@ -1,7 +1,16 @@
 {
-    "name": "Concierge",
-    "tone_instruction_default": "adult",
-    "logo_url": "https://example.com/logo.png",
-    "init_message": "Hi, I'm your Concierge. Ready to help you book something?",
-    "system_prompt_file": "prompt.txt"
+    "name": "Pension Guru 2",
+    "tone_instruction_default": "14",
+    "logo_url": "https://simplyai.ie/buddy-icon.png",
+    "init_message": "Hi! What would you like to know about your pension?",
+    "system_prompt_file": "prompt.txt",
+    "pdf_title": "Pension Plan Summary",
+    "profile_fields": [
+        "region",
+        "age",
+        "income",
+        "retirement_age",
+        "risk_profile",
+        "prsi_years"
+]
   }
