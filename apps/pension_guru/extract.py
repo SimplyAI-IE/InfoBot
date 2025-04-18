@@ -11,7 +11,9 @@ from .pension_calculator import calculate_pension
 
 
 def block_response(user_input, profile):
-    region = getattr(profile, "region", "").lower() if profile else ""
+    region = getattr(profile, "region", None)
+    region = region.lower() if region else ""
+
     if region not in ["ireland", "uk"]:
         return (
             "This assistant is currently available only to users in Ireland or the UK. "
