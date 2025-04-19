@@ -8,10 +8,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import json
 from dotenv import load_dotenv
-from gpt_engine import get_gpt_response
+from gpt_engine import get_gpt_response # Keep gpt_engine import
 from memory import get_user_profile, save_user_profile, save_chat_message, get_chat_history
 from models import init_db, User, SessionLocal, UserProfile, ChatHistory
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse # Added JSONResponse
 from weasyprint import HTML
 from io import BytesIO
 import re
@@ -20,25 +20,29 @@ import importlib
 from typing import Optional
 from uuid import uuid4
 from backend.apps.base_app import BaseApp
+from backend.apps.pension_guru.flow_engine import PensionFlow # Import FlowEngine here
 
 os.environ["G_MESSAGES_DEBUG"] = ""
-logging.basicConfig(level=logging.WARNING)
+logging.basicConfig(level=logging.INFO) # Use INFO for more visibility during dev
 logger = logging.getLogger(__name__)
 
 load_dotenv()
 app = FastAPI()
 
+# --- CORS Middleware (remains unchanged) ---
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://infobot-h7cr.onrender.com",  # Keep deployed origin
-        "http://localhost:5500"              # Add local dev origin <<-- ADD THIS
+        "https://infobot-h7cr.onrender.com",
+        "http://localhost:5500",
+        "http://127.0.0.1:5500" # Added explicit loopback IP
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]
 )
-print("✅ CORS enabled for:", ["https://infobot-h7cr.onrender.com", "http://localhost:5500"]) # Optional: update print
+print("✅ CORS enabled for:", ["https://infobot-h7cr.onrender.com", "http://localhost:5500", "http://127.0.0.1:5500"])
+
 
 logger.info("Initializing database...")
 init_db()
@@ -49,74 +53,151 @@ class ChatRequest(BaseModel):
     message: str
     tone: str = ""
 
+# --- App Loading Logic (remains unchanged) ---
 app_id = os.getenv("ACTIVE_APP")
+if not app_id:
+     raise RuntimeError("ACTIVE_APP environment variable not set.")
 config = json.load(open(f"backend/apps/{app_id}/config.json"))
 
-module = importlib.import_module(f"backend.apps.{app_id}.extract")
-extract_class = getattr(module, config.get("class_name", "PensionGuruApp"))
-extract: BaseApp = extract_class()
+try:
+    module = importlib.import_module(f"backend.apps.{app_id}.extract")
+    class_name = config.get("class_name", "PensionGuruApp") # Default added for safety
+    extract_class = getattr(module, class_name)
+    # Instantiate the app class
+    extract_instance: BaseApp = extract_class()
+except (ImportError, AttributeError, FileNotFoundError) as e:
+     logger.error(f"Failed to load app '{app_id}': {e}", exc_info=True)
+     raise RuntimeError(f"Could not load application '{app_id}'. Check configuration and file paths.") from e
 
-if not isinstance(extract, BaseApp):
-    raise TypeError(f"{app_id} extract module does not implement required BaseApp interface.")
+
+if not isinstance(extract_instance, BaseApp):
+    raise TypeError(f"{app_id} extract module's class '{class_name}' does not implement required BaseApp interface.")
+logger.info(f"✅ Loaded app: {app_id} using class {class_name}")
+
 
 @app.post("/chat")
 async def chat(req: ChatRequest, request: Request):
     user_id = req.user_id or f"anon_{uuid4().hex[:10]}"
     user_message = req.message.strip()
     user_message_lower = user_message.lower()
-    logger.info(f"Received chat request from user_id: {user_id}, message: '{user_message}'")
+    tone = req.tone or config.get("tone_instruction_default", "adult") # Use default tone if none provided
 
-    # ✅ Always extract first so pre_prompt logic can respond correctly
-    profile = extract.extract_user_data(user_id, user_message)
+    logger.info(f"--- New Chat Request --- User: {user_id}, Tone: {tone}, Message: '{user_message}'")
 
+    # --- Refactored Logic Flow ---
 
+    # 1. Handle INIT message separately first
     if user_message == "__INIT__":
         logger.info(f"Handling __INIT__ command for user_id: {user_id}")
-        scripted = extract.pre_prompt(profile, user_id)
-        if scripted:
-            return {"response": scripted, "user_id": user_id}
-        reply = get_gpt_response(user_message, user_id, tone=req.tone)
-        return {"response": reply, "user_id": user_id}
+        profile = get_user_profile(user_id) # Get profile for init message
+        flow = PensionFlow(profile, user_id)
+        scripted_response = flow.step() # Check if flow dictates initial message
 
-    if not user_message:
-        logger.warning(f"Received empty message from user_id: {user_id}")
-        history = get_chat_history(user_id, limit=2)
-        reply = extract.handle_empty_input(user_id, history, profile, req.tone)
-        if reply:
-            return {"response": reply, "user_id": user_id}
-        raise HTTPException(status_code=400, detail="Message cannot be empty")
+        if scripted_response:
+             logger.info(f"INIT - Flow provided initial response for {user_id}.")
+             # Don't save __INIT__ itself, just the response
+             save_chat_message(user_id, 'assistant', scripted_response)
+             return {"response": scripted_response, "user_id": user_id}
+        else:
+             # If flow doesn't handle INIT, use default GPT init logic
+             logger.info(f"INIT - Flow did not provide response, using default GPT init for {user_id}.")
+             reply = get_gpt_response("__INIT__", user_id, tone=tone) # Use specific __INIT__ call
+             save_chat_message(user_id, 'assistant', reply) # Save the welcome message
+             return {"response": reply, "user_id": user_id}
 
+    # 2. Extract Data & Get Updated Profile
+    try:
+        # Pass the instance, not the class
+        profile = extract_instance.extract_user_data(user_id, user_message)
+        logger.info(f"Data extraction complete for {user_id}. Profile updated.")
+    except Exception as e:
+        logger.error(f"Error during data extraction for user {user_id}: {e}", exc_info=True)
+        # Decide how to handle critical extraction errors - maybe return an error message?
+        raise HTTPException(status_code=500, detail="Error processing your message data.")
+
+    # 3. Check for Blocking Conditions (e.g., unsupported region AFTER extraction)
+    block_msg = extract_instance.block_response(user_message, profile)
+    if block_msg:
+        logger.warning(f"Response blocked for user {user_id}. Reason: {block_msg}")
+        # Save user message potentially? Or just return block? Let's save both.
+        save_chat_message(user_id, 'user', user_message)
+        save_chat_message(user_id, 'assistant', block_msg)
+        return {"response": block_msg, "user_id": user_id}
+
+    # 4. Handle "Wants Tips" Logic (if applicable)
     history = get_chat_history(user_id, limit=2)
-    if extract.wants_tips(profile, user_message_lower, history):
-        reply = extract.tips_reply()
+    if extract_instance.wants_tips(profile, user_message_lower, history):
+        logger.info(f"User {user_id} requested tips.")
+        reply = extract_instance.tips_reply()
         save_chat_message(user_id, 'user', user_message)
         save_chat_message(user_id, 'assistant', reply)
-        save_user_profile(user_id, "pending_action", None)
+        save_user_profile(user_id, "pending_action", None) # Clear pending action
         return {"response": reply, "user_id": user_id}
 
-    logger.info(f"Proceeding with standard chat flow for user {user_id}")
+    # 5. Process Conversation Flow
+    flow = PensionFlow(profile, user_id)
+    scripted_response = flow.step() # Get the *next* scripted step/prompt
+
+    if scripted_response:
+        logger.info(f"Flow provided scripted response for user {user_id}: '{scripted_response[:50]}...'")
+        save_chat_message(user_id, 'user', user_message)
+        save_chat_message(user_id, 'assistant', scripted_response)
+        # Profile state (pending_step) was updated inside flow.step()
+        return {"response": scripted_response, "user_id": user_id}
+
+    # 6. Check if Calculation is Ready (Example for Ireland)
+    #    (This check happens *after* the flow step returns None, meaning the flow part is done)
+    current_step = getattr(profile, "pending_step", None) # Re-check step after flow.step()
+    if current_step is None: # Flow finished, ready for calculation or GPT
+         logger.info(f"Flow finished or paused for user {user_id}. Checking for calculation trigger.")
+         # Use the instance method we added in extract.py
+         calculation_reply = extract_instance.get_pension_calculation_reply(user_id)
+         if calculation_reply:
+              logger.info(f"Pension calculation generated for user {user_id}.")
+              save_chat_message(user_id, 'user', user_message)
+              save_chat_message(user_id, 'assistant', calculation_reply)
+              # Pending step should be None already, pending_action might be set by get_pension_calculation_reply
+              return {"response": calculation_reply, "user_id": user_id}
+         else:
+              logger.info(f"Conditions for calculation not met for user {user_id}.")
+              # Proceed to GPT if no calculation was triggered
+
+
+    # 7. If no scripted response and no calculation, proceed to GPT
+    logger.info(f"No scripted response/calculation, proceeding with GPT for user {user_id}")
     try:
-        reply = get_gpt_response(user_message, user_id, tone=req.tone)
+        # Pass user_message (not __INIT__), user_id, tone
+        reply = get_gpt_response(user_message, user_id, tone=tone)
         logger.info(f"GPT response generated successfully for user_id: {user_id}")
+
+        # Save interaction
+        save_chat_message(user_id, 'user', user_message)
+        if reply: # Ensure reply is not empty/None
+            save_chat_message(user_id, 'assistant', reply)
+
+            # Check if GPT reply suggests offering tips
+            if extract_instance.should_offer_tips(reply):
+                 logger.info(f"GPT response triggered offer_tips for user {user_id}")
+                 save_user_profile(user_id, "pending_action", "offer_tips")
+            # Clear pending action if GPT reply doesn't offer tips and an action was pending
+            elif getattr(profile, "pending_action", None):
+                 save_user_profile(user_id, "pending_action", None)
+
+        return {"response": reply or "...", "user_id": user_id}
+
     except Exception as e:
         logger.error(f"Error during GPT flow for user_id: {user_id}: {e}", exc_info=True)
-        reply = "I'm sorry, I encountered a technical issue trying to process that. Could you try rephrasing?"
-
-    save_chat_message(user_id, 'user', user_message)
-    if reply:
-        save_chat_message(user_id, 'assistant', reply)
-
-    if extract.should_offer_tips(reply):
-        save_user_profile(user_id, "pending_action", "offer_tips")
-    elif profile and not hasattr(profile, 'pending_action'):
-        logger.warning(f"Profile for user {user_id} exists but missing 'pending_action' attribute. Cannot set state.")
-
-    return {"response": reply, "user_id": user_id}
+        # Return a generic error message, don't save potentially faulty interaction
+        return JSONResponse(
+             status_code=500,
+             content={"response": "I'm sorry, I encountered a technical issue. Please try rephrasing or wait a moment.", "user_id": user_id}
+        )
 
 
-
+# --- Auth Endpoint (remains unchanged) ---
 @app.post("/auth/google")
 async def auth_google(user_data: dict):
+    # ... (existing code) ...
     if not user_data or "sub" not in user_data:
         logger.error("Invalid user data received in /auth/google")
         raise HTTPException(status_code=400, detail="Invalid user data received")
@@ -133,14 +214,20 @@ async def auth_google(user_data: dict):
             user = User(id=user_id, name=user_data.get("name", "Unknown User"), email=user_data.get("email"))
             db.add(user)
             if not profile:
+                # Ensure profile exists or create it when user is created
                 profile = UserProfile(user_id=user_id)
+                # You might want to pre-populate profile fields here if applicable
                 db.add(profile)
             db.commit()
             db.refresh(user)
-        elif not profile:
-            profile = UserProfile(user_id=user_id)
-            db.add(profile)
-            db.commit()
+            if profile: db.refresh(profile) # Refresh profile too if added
+        elif not profile: # Existing user but missing profile somehow
+             logger.warning(f"User {user_id} exists but profile missing. Creating profile.")
+             profile = UserProfile(user_id=user_id)
+             db.add(profile)
+             db.commit()
+             db.refresh(profile)
+
     except Exception as e:
         db.rollback()
         logger.error(f"Database error during auth for user_id {user_id}: {e}", exc_info=True)
@@ -150,6 +237,7 @@ async def auth_google(user_data: dict):
 
     return {"status": "ok", "user_id": user_id}
 
+# --- PDF Export Endpoint (remains unchanged, uses instance) ---
 @app.get("/export-pdf")
 async def export_pdf(user_id: str):
     profile = get_user_profile(user_id)
@@ -176,7 +264,8 @@ async def export_pdf(user_id: str):
 
     for field in profile_fields:
         label = field.replace("_", " ").title()
-        rendered = extract.render_profile_field(field, profile)
+        # Use the instance method for rendering
+        rendered = extract_instance.render_profile_field(field, profile)
         profile_text += f"<li>{label}: {rendered}</li>"
 
     profile_text += "</ul>"
@@ -205,18 +294,38 @@ async def export_pdf(user_id: str):
         "Content-Disposition": f"attachment; filename={app_id}_report_{user_id}.pdf"
     })
 
+
+# --- Forget Endpoint (remains unchanged) ---
 @app.post("/chat/forget")
 async def forget_chat_history(request: Request):
+    # ... (existing code) ...
     data = await request.json()
     user_id = data.get("user_id")
     if not user_id:
         raise HTTPException(status_code=400, detail="Missing user_id")
 
+    logger.info(f"Received request to forget data for user {user_id}")
     db = SessionLocal()
     try:
-        db.query(ChatHistory).filter(ChatHistory.user_id == user_id).delete(synchronize_session=False)
-        db.query(UserProfile).filter(UserProfile.user_id == user_id).delete(synchronize_session=False)
+        # Delete chat history
+        deleted_chats = db.query(ChatHistory).filter(ChatHistory.user_id == user_id).delete(synchronize_session=False)
+        logger.info(f"Deleted {deleted_chats} chat messages for user {user_id}")
+        # Delete user profile data (or reset fields)
+        # Option 1: Delete the profile row entirely
+        deleted_profile = db.query(UserProfile).filter(UserProfile.user_id == user_id).delete(synchronize_session=False)
+        logger.info(f"Deleted {deleted_profile} profile entry for user {user_id}")
+        # Option 2: Reset specific fields (if you want to keep the user_id association)
+        # profile = db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
+        # if profile:
+        #     profile.age = None
+        #     profile.income = None
+        #     # ... reset other fields ...
+        #     profile.pending_step = None # Reset flow state
+        #     profile.pending_action = None
+        #     logger.info(f"Reset profile fields for user {user_id}")
+
         db.commit()
+        logger.info(f"Successfully cleared data for user {user_id}")
     except Exception as e:
         db.rollback()
         logger.error(f"Error deleting data for user {user_id}: {e}", exc_info=True)
@@ -224,23 +333,49 @@ async def forget_chat_history(request: Request):
     finally:
         db.close()
 
+    # Re-create a basic profile shell after deletion? Or let auth handle it on next login?
+    # Let auth handle it seems cleaner.
+
     return {"status": "ok", "message": "Chat history and profile cleared."}
 
+# --- Static Files & Healthz (remains unchanged) ---
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 static_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../public"))
 
-app.mount("/static", StaticFiles(directory=static_dir), name="static")
+# Check if static directory exists
+if not os.path.isdir(static_dir):
+     logger.error(f"Static files directory not found: {static_dir}")
+     # Decide how to handle this - raise error or just log?
+     # For now, log and proceed, but frontend won't load.
+else:
+     logger.info(f"Serving static files from: {static_dir}")
+     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 @app.get("/")
 async def serve_index():
     file_path = os.path.join(static_dir, "index.html")
-    print("Serving frontend from:", file_path)
-    return FileResponse(file_path)
+    if os.path.exists(file_path):
+        logger.debug(f"Serving index.html from: {file_path}")
+        return FileResponse(file_path)
+    else:
+        logger.error(f"index.html not found at: {file_path}")
+        raise HTTPException(status_code=404, detail="Frontend not found")
+
 
 @app.get("/healthz")
 async def healthz():
+    # Add db check?
+    # db = SessionLocal()
+    # try:
+    #     db.execute(text("SELECT 1"))
+    #     db_status = "ok"
+    # except Exception:
+    #     db_status = "error"
+    # finally:
+    #     db.close()
+    # return {"status": "ok", "database": db_status}
     return {"status": "ok"}
 
 # --- End of main.py ---

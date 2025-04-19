@@ -61,34 +61,30 @@ CHAT_HISTORY_LIMIT = 5
 def get_gpt_response(user_input, user_id, tone=""):
     logger.info(f"get_gpt_response called for user_id: {user_id}")
     profile = get_user_profile(user_id)
-    # Always call pre_prompt to advance the flow
-    scripted_prompt = extract.pre_prompt(profile, user_id)
 
-    if scripted_prompt:
-        return scripted_prompt
+    # --- Removed initial pre_prompt call here ---
 
-# Optional pre-GPT flow from app
-    scripted_prompt = extract.pre_prompt(profile, user_id)
-    if scripted_prompt and user_input.strip() == "__INIT__":
-        return scripted_prompt
-    block_msg = None
-    if user_input != "__INIT__":
-        block_msg = extract.block_response(user_input, profile)
-        if block_msg:
-            return block_msg
-
-    db = SessionLocal()
-    user = db.query(User).filter(User.id == user_id).first()
-    db.close()
-    name = user.name if user and user.name else "there"
-
+    # Optional pre-GPT flow from app - handle __INIT__ or block
+    # Note: The primary flow check now happens in main.py *before* calling this function
     if user_input.strip() == "__INIT__":
-        logger.info(f"Handling __INIT__ message for user_id: {user_id}")
+        scripted_prompt = extract.pre_prompt(profile, user_id) # Keep for explicit INIT handling if needed by app
+        if scripted_prompt:
+             return scripted_prompt
+        # Fallback __INIT__ logic if pre_prompt doesn't handle it
+        db = SessionLocal()
+        user = db.query(User).filter(User.id == user_id).first()
+        db.close()
+        name = user.name if user and user.name else "there"
         if profile:
             summary = extract.format_user_context(profile)
             return f"Welcome back, {name}! Here's what I remember: {summary}. What would you like to explore today?"
         return config.get("init_message", "Welcome! How can I assist you today?")
 
+    block_msg = extract.block_response(user_input, profile)
+    if block_msg:
+        return block_msg
+
+    # Proceed with standard GPT call if not blocked and not handled by flow in main.py
     logger.info(f"Processing regular message for user_id: {user_id}")
     history = get_chat_history(user_id, limit=CHAT_HISTORY_LIMIT)
     logger.debug(f"Retrieved {len(history)} messages from history for user_id: {user_id}")
@@ -115,6 +111,10 @@ def get_gpt_response(user_input, user_id, tone=""):
 
     messages.append({"role": "user", "content": user_input})
 
+    # --- Calculation Logic moved to extract.py / triggered from main.py if needed ---
+    # (The pension calculation display logic was previously here but is better placed
+    # within the app's logic or triggered explicitly after flow completion)
+
     try:
         logger.info(f"Calling OpenAI API for user_id: {user_id}...")
         response = client.chat.completions.create(
@@ -129,4 +129,5 @@ def get_gpt_response(user_input, user_id, tone=""):
     except Exception as e:
         logger.error(f"Error calling OpenAI API for user_id {user_id}: {e}", exc_info=True)
         return "I'm sorry, but I encountered a technical difficulty while processing your request. Please try again in a few moments."
+
 # --- End of gpt_engine.py ---
