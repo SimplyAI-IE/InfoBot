@@ -238,4 +238,8 @@ async def serve_index():
     print("Serving frontend from:", file_path)
     return FileResponse(file_path)
 
+# Add this at the bottom of main.py
+@app.get("/healthz")
+async def healthz():
+    return {"status": "ok"}
 # --- End of main.py ---
