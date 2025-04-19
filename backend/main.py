@@ -2,6 +2,7 @@
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -17,7 +18,7 @@ import re
 import logging
 import importlib
 from typing import Optional
-from apps.base_app import BaseApp
+from backend.apps.base_app import BaseApp  # ✅ updated
 
 os.environ["G_MESSAGES_DEBUG"] = ""
 logging.basicConfig(level=logging.WARNING)
@@ -45,10 +46,10 @@ class ChatRequest(BaseModel):
     tone: str = ""
 
 app_id = os.getenv("ACTIVE_APP")
-config = json.load(open(f"apps/{app_id}/config.json"))
+config = json.load(open(f"backend/apps/{app_id}/config.json"))  # ✅ updated path
 
 # Plugin-based dynamic app loading
-module = importlib.import_module(f"apps.{app_id}.extract")
+module = importlib.import_module(f"backend.apps.{app_id}.extract")  # ✅ updated path
 extract_class = getattr(module, config.get("class_name", "PensionGuruApp"))
 extract: BaseApp = extract_class()
 
