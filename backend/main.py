@@ -18,7 +18,8 @@ import re
 import logging
 import importlib
 from typing import Optional
-from backend.apps.base_app import BaseApp  # ✅ updated
+from uuid import uuid4
+from backend.apps.base_app import BaseApp
 
 os.environ["G_MESSAGES_DEBUG"] = ""
 logging.basicConfig(level=logging.WARNING)
@@ -41,15 +42,14 @@ init_db()
 logger.info("Database initialized.")
 
 class ChatRequest(BaseModel):
-    user_id: str
+    user_id: Optional[str] = None
     message: str
     tone: str = ""
 
 app_id = os.getenv("ACTIVE_APP")
-config = json.load(open(f"backend/apps/{app_id}/config.json"))  # ✅ updated path
+config = json.load(open(f"backend/apps/{app_id}/config.json"))
 
-# Plugin-based dynamic app loading
-module = importlib.import_module(f"backend.apps.{app_id}.extract")  # ✅ updated path
+module = importlib.import_module(f"backend.apps.{app_id}.extract")
 extract_class = getattr(module, config.get("class_name", "PensionGuruApp"))
 extract: BaseApp = extract_class()
 
@@ -57,8 +57,8 @@ if not isinstance(extract, BaseApp):
     raise TypeError(f"{app_id} extract module does not implement required BaseApp interface.")
 
 @app.post("/chat")
-async def chat(req: ChatRequest):
-    user_id = req.user_id
+async def chat(req: ChatRequest, request: Request):
+    user_id = req.user_id or f"anon_{uuid4().hex[:10]}"
     user_message = req.message.strip()
     user_message_lower = user_message.lower()
     extract.extract_user_data(user_id, user_message)
@@ -67,7 +67,7 @@ async def chat(req: ChatRequest):
     if user_message == "__INIT__":
         logger.info(f"Handling __INIT__ command for user_id: {user_id}")
         reply = get_gpt_response(user_message, user_id, tone=req.tone)
-        return {"response": reply}
+        return {"response": reply, "user_id": user_id}
 
     if not user_message:
         logger.warning(f"Received empty message from user_id: {user_id}")
@@ -76,7 +76,7 @@ async def chat(req: ChatRequest):
 
         reply = extract.handle_empty_input(user_id, history, profile, req.tone)
         if reply:
-            return {"response": reply}
+            return {"response": reply, "user_id": user_id}
         raise HTTPException(status_code=400, detail="Message cannot be empty")
 
     profile = get_user_profile(user_id)
@@ -86,7 +86,7 @@ async def chat(req: ChatRequest):
         save_chat_message(user_id, 'user', user_message)
         save_chat_message(user_id, 'assistant', reply)
         save_user_profile(user_id, "pending_action", None)
-        return {"response": reply}
+        return {"response": reply, "user_id": user_id}
 
     logger.info(f"Proceeding with standard chat flow for user {user_id}")
     try:
@@ -95,7 +95,6 @@ async def chat(req: ChatRequest):
     except Exception as e:
         logger.error(f"Error extracting data for user {user_id}: {e}", exc_info=True)
 
-    reply = ""
     try:
         reply = get_gpt_response(user_message, user_id, tone=req.tone)
         logger.info(f"GPT response generated successfully for user_id: {user_id}")
@@ -112,7 +111,7 @@ async def chat(req: ChatRequest):
     elif profile and not hasattr(profile, 'pending_action'):
         logger.warning(f"Profile for user {user_id} exists but missing 'pending_action' attribute. Cannot set state.")
 
-    return {"response": reply}
+    return {"response": reply, "user_id": user_id}
 
 @app.post("/auth/google")
 async def auth_google(user_data: dict):
@@ -238,8 +237,8 @@ async def serve_index():
     print("Serving frontend from:", file_path)
     return FileResponse(file_path)
 
-# Add this at the bottom of main.py
 @app.get("/healthz")
 async def healthz():
     return {"status": "ok"}
+
 # --- End of main.py ---
