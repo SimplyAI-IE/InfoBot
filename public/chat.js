@@ -2,10 +2,19 @@ const form = document.getElementById("chat-form");
 const input = document.getElementById("user-input");
 const chatbox = document.getElementById("chatbox");
 
+function ensureUserId() {
+  let userId = sessionStorage.getItem("user_id");
+  if (!userId) {
+    userId = "anon_" + Math.random().toString(36).substring(2, 12);
+    sessionStorage.setItem("user_id", userId);
+  }
+  return userId;
+}
+
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  const userId = sessionStorage.getItem("user_id");
+  const userId = ensureUserId();
   const userMessage = input.value.trim();
   const tone = sessionStorage.getItem("user_tone");
 
@@ -26,11 +35,15 @@ form.addEventListener("submit", async (e) => {
 
   const data = await res.json();
   appendMessage("Pension Guru", data.response || "Something went wrong.", "planner");
+
+  // Store returned user_id if new
+  if (data.user_id) {
+    sessionStorage.setItem("user_id", data.user_id);
+  }
 });
 
-
 function appendMessage(sender, text, role) {
-  const parts = text.split(/\n{2,}/); // split on double newlines
+  const parts = text.split(/\n{2,}/);
 
   parts.forEach(part => {
     const message = document.createElement("div");
@@ -40,38 +53,20 @@ function appendMessage(sender, text, role) {
       '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
     );
     message.innerHTML = `<strong>${sender}:</strong> ${formatted}`;
-    
+
     chatbox.appendChild(message);
     if (role === "planner") {
       const btn = document.getElementById("download-pdf");
       if (btn) btn.disabled = false;
     }
-    
   });
 
   chatbox.scrollTop = chatbox.scrollHeight;
 }
 
-// Auto-trigger GPT greeting after login
+// Auto-trigger GPT greeting
 window.addEventListener("DOMContentLoaded", () => {
-  const userId = sessionStorage.getItem("user_id");
-  if (userId) {
-    fetch("https://api.simplyai.ie/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        user_id: userId,
-        message: "__INIT__"
-      })
-    })
-    .then(res => res.json())
-    .then(data => {
-      appendMessage("Pension Guru", data.response || "Welcome!", "planner");
-    });
-  }
-});
-
-function triggerInitialGreeting(userId) {
+  const userId = ensureUserId();
   fetch("https://api.simplyai.ie/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -83,7 +78,8 @@ function triggerInitialGreeting(userId) {
   .then(res => res.json())
   .then(data => {
     appendMessage("Pension Guru", data.response || "Welcome!", "planner");
-  })
-  .catch(err => console.error("Init message failed:", err));
-}
-
+    if (data.user_id) {
+      sessionStorage.setItem("user_id", data.user_id);
+    }
+  });
+});
