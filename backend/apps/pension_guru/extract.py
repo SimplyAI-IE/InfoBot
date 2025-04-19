@@ -81,3 +81,30 @@ class PensionGuruApp(BaseApp):
 
     def render_profile_field(self, field, profile):
         return "—"
+    
+    def get_pension_calculation_reply(self, user_id: str) -> str:
+        profile = get_user_profile(user_id)
+        region = getattr(profile, "region", "").lower()
+        prsi_years = getattr(profile, "prsi_years", None)
+        age = getattr(profile, "age", None)
+        retirement_age = getattr(profile, "retirement_age", None)
+
+        if not (region and prsi_years and age and retirement_age):
+            return "I’m missing some details to calculate your pension. Can you confirm your PRSI years, age, and planned retirement age?"
+
+        calc = calculate_pension(region, prsi_years, age=age, retirement_age=retirement_age)
+        if not calc:
+            return "I couldn’t run the pension estimate. Please check the details provided."
+
+        now_fmt = f"{calc['currency']}{calc['weekly_pension_now']:.2f}"
+        future_fmt = f"{calc['currency']}{calc['weekly_pension_future']:.2f}"
+
+        return (
+            f"Thanks! Based on {calc['prsi_years']} PRSI years and retiring at {retirement_age}:\n\n"
+            f"If you stopped contributing today:\n"
+            f"- {calc['contributions_now']} contributions → {now_fmt}/week\n\n"
+            f"If you work until age {retirement_age}:\n"
+            f"- {calc['contributions_future']} contributions → {future_fmt}/week\n\n"
+            f"Would you like tips to boost your pension?"
+        )
+
