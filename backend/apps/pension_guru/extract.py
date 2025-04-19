@@ -25,8 +25,10 @@ class PensionGuruApp(BaseApp):
 
 
     def block_response(self, user_input, profile):
-        region = getattr(profile, "region", None)
-        region = region.lower() if region else ""
+        if isinstance(profile, dict):
+            region = profile.get("region", "").lower()
+        else:
+            region = getattr(profile, "region", "").lower()
 
         if region not in ["ireland", "uk"]:
             return (
