@@ -43,13 +43,20 @@ CHAT_HISTORY_LIMIT = 5  # Reduced to focus on recent context
 
 def get_gpt_response(user_input, user_id, tone=""):
     logger.info(f"get_gpt_response called for user_id: {user_id}")
+   # gpt_engine.py (Corrected section)
+
     profile = get_user_profile(user_id)
+
+    block_msg = None # <-- ADD THIS LINE: Initialize block_msg
+
     if user_input != "__INIT__":
-     block_msg = extract.block_response(user_input, profile)
+        block_msg = extract.block_response(user_input, profile) # Assignment happens here
+
+    # This check is now safe
     if block_msg:
         return block_msg
-    if block_msg:
-        return block_msg
+
+# The rest of the function continues as before
     db = SessionLocal()
     user = db.query(User).filter(User.id == user_id).first()
     db.close()
