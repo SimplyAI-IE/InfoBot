@@ -15,6 +15,7 @@ class PensionGuruApp(BaseApp):
 
     # pre_prompt is still needed by flow_engine
     def pre_prompt(self, profile, user_id):
+        profile = get_user_profile(user_id)
         from .flow_engine import PensionFlow # Keep import here for this method
         print("📡 pre_prompt triggered")
         flow = PensionFlow(profile, user_id)
@@ -98,21 +99,25 @@ class PensionGuruApp(BaseApp):
         if age is not None:
             print(f"📌 Detected age: {age}")
             profile = save_user_profile(user_id, "age", age) # Update profile
+            profile = get_user_profile(user_id)
 
         income = extract_income(msg_lower)
         if income is not None:
             print(f"📌 Detected income: {income}")
             profile = save_user_profile(user_id, "income", income) # Update profile
+            profile = get_user_profile(user_id)
 
         ret_age = extract_retirement_age(msg_lower)
         if ret_age is not None:
             print(f"📌 Detected retirement age: {ret_age}")
             profile = save_user_profile(user_id, "retirement_age", ret_age) # Update profile
+            profile = get_user_profile(user_id)
 
         region = extract_region(msg_lower)
         if region in ["Ireland", "UK"]:
             print(f"📌 Detected region: {region}")
             profile = save_user_profile(user_id, "region", region) # Update profile
+            profile = get_user_profile(user_id)
         elif region == "unsupported":
             # This is an immediate blocking condition, handle here
             block_msg = (
@@ -129,11 +134,13 @@ class PensionGuruApp(BaseApp):
         if risk:
             print(f"📌 Detected risk profile: {risk}")
             profile = save_user_profile(user_id, "risk_profile", risk) # Update profile
+            profile = get_user_profile(user_id)
 
         prsi_years = extract_prsi_years(msg_lower)
         if prsi_years is not None:
             print(f"📌 Detected prsi_years: {prsi_years}")
             profile = save_user_profile(user_id, "prsi_years", prsi_years) # Update profile
+            profile = get_user_profile(user_id)
 
 
         # --- Flow Advancement Logic REMOVED from here ---
@@ -171,6 +178,7 @@ class PensionGuruApp(BaseApp):
                 )
                 # Set pending action so the main loop knows tips were offered
                 save_user_profile(user_id, "pending_action", "offer_tips")
+                profile = get_user_profile(user_id)
                 return reply
         # TODO: Add UK calculation trigger if needed
 
