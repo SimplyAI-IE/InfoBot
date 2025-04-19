@@ -44,7 +44,10 @@ CHAT_HISTORY_LIMIT = 5  # Reduced to focus on recent context
 def get_gpt_response(user_input, user_id, tone=""):
     logger.info(f"get_gpt_response called for user_id: {user_id}")
     profile = get_user_profile(user_id)
-    block_msg = extract.block_response(user_input, profile)
+    if user_input != "__INIT__":
+     block_msg = extract.block_response(user_input, profile)
+    if block_msg:
+        return block_msg
     if block_msg:
         return block_msg
     db = SessionLocal()
