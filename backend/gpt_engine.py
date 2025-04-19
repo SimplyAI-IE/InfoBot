@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from memory import get_user_profile, get_chat_history
 from models import SessionLocal, User
-from apps.base_app import BaseApp
+from backend.apps.base_app import BaseApp  # ✅ updated import
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -16,23 +16,26 @@ logger = logging.getLogger(__name__)
 # Load environment variables
 load_dotenv()
 
+# Add project root to sys.path (optional fallback)
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 # Load app config
 app_id = os.getenv("ACTIVE_APP")
+print(f"DEBUG: ACTIVE_APP loaded as: {app_id}")  # ✅ add this to confirm env var loading
+
 if not app_id:
     raise RuntimeError("Missing ACTIVE_APP in .env")
 
-app_path = f"apps/{app_id}"
-config_path = f"{app_path}/config.json"
+app_path = f"backend.apps.{app_id}"
+config_path = f"backend/apps/{app_id}/config.json"
 if not os.path.exists(config_path):
     raise FileNotFoundError(f"Missing config.json for app: {app_id}")
 config = json.load(open(config_path))
 
 # Load the prompt
-prompt_path = f"{app_path}/{config['system_prompt_file']}"
+prompt_path = f"backend/apps/{app_id}/{config['system_prompt_file']}"
 if not os.path.exists(prompt_path):
     raise FileNotFoundError(f"Prompt file not found: {prompt_path}")
 with open(prompt_path, encoding="utf-8") as f:
@@ -106,7 +109,7 @@ def get_gpt_response(user_input, user_id, tone=""):
     try:
         logger.info(f"Calling OpenAI API for user_id: {user_id}...")
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",  # Change to "gpt-4.1" if needed
+            model="gpt-3.5-turbo",
             messages=messages,
             temperature=0.7
         )
