@@ -28,3 +28,10 @@ class BaseApp(ABC):
     @abstractmethod
     def format_user_context(self, profile: dict) -> str:
         pass
+
+    def pre_prompt(self, profile: dict) -> str | None:
+        """
+        Optionally return a scripted prompt before GPT response generation.
+        This allows structured flows before GPT takes over.
+        """
+        return None

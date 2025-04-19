@@ -1,0 +1,40 @@
+conversation_flow:
+  welcome:
+    action: personalize
+    next: region
+
+  region:
+    check: region
+    prompt: "Where do you live?"
+    next: pension_path
+
+  pension_path:
+    branch:
+      if_region: UK
+        -> uk_nic
+      if_region: Ireland
+        -> ie_prsi
+      else:
+        -> general_info
+
+  uk_nic:
+    check: nic_years
+    prompt: "How many years of NIC payments have you made?"
+    if_missing: 
+      info: "Please check your record at gov.uk. We can continue with general questions in the meantime."
+      fallback: general_info
+    next: confirm_facts
+
+  ie_prsi:
+    check: prsi_years
+    prompt: "How many years of PRSI contributions do you have?"
+    if_missing:
+      info: "Check your record at MyWelfare.ie. Until then, we can only answer general questions."
+      fallback: general_info
+    next: confirm_facts
+
+  confirm_facts:
+    action: summarize_profile_and_projection
+
+  general_info:
+    info: "Feel free to ask any questions you like about pensions in the UK or Ireland!"

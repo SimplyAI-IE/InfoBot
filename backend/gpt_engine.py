@@ -61,7 +61,10 @@ CHAT_HISTORY_LIMIT = 5
 def get_gpt_response(user_input, user_id, tone=""):
     logger.info(f"get_gpt_response called for user_id: {user_id}")
     profile = get_user_profile(user_id)
-
+# Optional pre-GPT flow from app
+    scripted_prompt = extract.pre_prompt(profile)
+    if scripted_prompt and user_input.strip() == "__INIT__":
+        return scripted_prompt
     block_msg = None
     if user_input != "__INIT__":
         block_msg = extract.block_response(user_input, profile)

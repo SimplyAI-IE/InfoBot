@@ -3,6 +3,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../backend")))
 from backend.apps.base_app import BaseApp
 from memory import save_user_profile, get_user_profile, save_chat_message
+from .flow_engine import PensionFlow
 from .extract_user_data import (
     extract_age, extract_income, extract_retirement_age,
     extract_risk_profile, extract_region, extract_prsi_years
@@ -10,6 +11,10 @@ from .extract_user_data import (
 from .pension_calculator import calculate_pension
 
 class PensionGuruApp(BaseApp):
+
+    def pre_prompt(self, profile):
+        flow = PensionFlow(profile)
+        return flow.step("welcome")
 
     def block_response(self, user_input, profile):
         region = getattr(profile, "region", None)
