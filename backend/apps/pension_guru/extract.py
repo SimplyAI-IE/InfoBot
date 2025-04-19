@@ -129,7 +129,7 @@ class PensionGuruApp(BaseApp):
             save_chat_message(user_id, 'assistant', block_msg)
 
         flow = PensionFlow(profile, user_id)
-        current_step = flow.current_step
+        current_step = flow.current_step_name
         node = flow.flow.get(current_step, {})
         expected_field = node.get("expect_field")
         if expected_field and getattr(profile, expected_field, None):
