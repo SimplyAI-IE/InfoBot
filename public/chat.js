@@ -1,3 +1,6 @@
+const USE_LOCAL = true;
+const API_BASE = USE_LOCAL ? "http://localhost:8000" : "https://api.simplyai.ie";
+
 const form = document.getElementById("chat-form");
 const input = document.getElementById("user-input");
 const chatbox = document.getElementById("chatbox");
@@ -23,28 +26,31 @@ form.addEventListener("submit", async (e) => {
   appendMessage(sessionStorage.getItem("user_name")?.split(" ")[0] || "You", userMessage, "user");
   input.value = "";
 
-  const res = await fetch("https://api.simplyai.ie/chat", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      user_id: userId,
-      message: userMessage,
-      tone: tone || ""
-    })
-  });
+  try {
+    const res = await fetch(`${API_BASE}/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: userId,
+        message: userMessage,
+        tone: tone || ""
+      })
+    });
 
-  const data = await res.json();
-  appendMessage("Pension Guru", data.response || "Something went wrong.", "planner");
+    const data = await res.json();
+    appendMessage("Pension Guru", data.response || "Something went wrong.", "planner");
 
-  // Store returned user_id if new
-  if (data.user_id) {
-    sessionStorage.setItem("user_id", data.user_id);
+    if (data.user_id) {
+      sessionStorage.setItem("user_id", data.user_id);
+    }
+  } catch (err) {
+    console.error("Fetch error:", err);
+    appendMessage("System", "Unable to connect to the assistant. Please try again.", "planner");
   }
 });
 
 function appendMessage(sender, text, role) {
   const parts = text.split(/\n{2,}/);
-
   parts.forEach(part => {
     const message = document.createElement("div");
     message.classList.add("message", role);
@@ -53,8 +59,8 @@ function appendMessage(sender, text, role) {
       '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
     );
     message.innerHTML = `<strong>${sender}:</strong> ${formatted}`;
-
     chatbox.appendChild(message);
+
     if (role === "planner") {
       const btn = document.getElementById("download-pdf");
       if (btn) btn.disabled = false;
@@ -64,10 +70,9 @@ function appendMessage(sender, text, role) {
   chatbox.scrollTop = chatbox.scrollHeight;
 }
 
-// Auto-trigger GPT greeting
 window.addEventListener("DOMContentLoaded", () => {
   const userId = ensureUserId();
-  fetch("https://api.simplyai.ie/chat", {
+  fetch(`${API_BASE}/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -81,5 +86,9 @@ window.addEventListener("DOMContentLoaded", () => {
     if (data.user_id) {
       sessionStorage.setItem("user_id", data.user_id);
     }
+  })
+  .catch(err => {
+    console.error("Init request failed:", err);
+    appendMessage("System", "Failed to start the assistant.", "planner");
   });
 });

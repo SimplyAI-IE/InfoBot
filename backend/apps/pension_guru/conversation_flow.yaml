@@ -1,40 +1,224 @@
 conversation_flow:
-  welcome:
-    action: personalize
-    next: region
+  step_1_welcome_intro:
+    title: Welcome & Country Selection
+    description: Start the conversation and determine the user's country.
+    script_prompt: Hi! I can help guide you through checking your State Pension information.
+      To start, please tell me if you are primarily concerned with the pension system
+      in the UK or Ireland?
+    expect_field: region
+    next_step: step_2_country_branch
+  step_2_country_branch:
+    title: Branch Based on Country
+    description: Direct the conversation based on the user's country.
+    branching_logic:
+    - condition: User selects UK
+      target_flow: uk_flow
+    - condition: User selects Ireland
+      target_flow: step_ie_intro
+    - condition: User provides other input or is unsure
+      prompt: Sorry, I can currently only provide guidance for the UK and Ireland
+        State Pension systems. Please specify either UK or Ireland.
+  uk_flow:
+    title: UK State Pension Evaluation Flow
+    description: Detailed steps for evaluating the UK State Pension.
+    phase_1_introduction_setup_uk:
+      title: 'Phase 1: Introduction & Setup (UK)'
+      steps:
+      - step_1_purpose_uk:
+          title: Purpose (UK)
+          script_prompt: Great, let's look at the UK State Pension. The idea is to
+            go through the steps to check your UK State Pension forecast and understand
+            what it means for your retirement planning. This is about helping you
+            find the official information yourself on the gov.uk website.
+      - step_2_disclaimer_uk:
+          title: Disclaimer (UK)
+          script_prompt: Just a reminder, I'm not a financial advisor, so I can't
+            tell you what decisions to make. This is just a guided conversation to
+            help you navigate the official UK government resources. For specific advice
+            tailored to your situation, you'd need to speak to a qualified professional.
+      - step_3_tools_needed_uk:
+          title: Tools Needed (UK)
+          script_prompt: To do this properly, you'll ideally need access to the internet
+            and your National Insurance number. You might also need details to log
+            in to or create a Government Gateway account on the `gov.uk` website.
+            Do you have these handy or are you happy to find them?
+    phase_2_gathering_basics_uk:
+      title: 'Phase 2: Gathering Basic Information (UK)'
+      steps:
+      - step_1_age_spa_uk:
+          title: Age & UK State Pension Age (SPA)
+          description: Establish DOB (for current age) and official State Pension
+            Age.
+          questions:
+          - Could you remind me of your date of birth? (This helps determine your
+            current age and SPA)
+          expect_field: age
+          action: Use the State Pension age calculator on gov.uk based on DOB.
+          link: https://www.gov.uk/state-pension-age
+          script_prompt: Okay, based on your DOB, your current age is [Current Age]
+            and your UK State Pension age is [SPA Age], which you'll reach around
+            [Date].
+      - step_2_planned_retirement_age_uk:
+          title: Planned Retirement Age (UK)
+          description: Capture the age the user plans to stop working.
+          questions:
+          - At what age do you currently plan to stop working and retire? (This might
+            be different from your State Pension Age)
+          expect_field: retirement_age
+    phase_3_checking_forecast_uk:
+      title: 'Phase 3: Checking the UK State Pension Forecast'
+      steps:
+      - step_1_accessing_forecast_uk:
+          title: Accessing the Forecast (UK)
+          questions:
+          - Have you checked your UK State Pension forecast before?
+          action: Guide them to the 'Check your State Pension forecast' service on
+            gov.uk. Assist with login if needed.
+          link: https://www.gov.uk/check-state-pension
+          notes:
+          - Be patient, login can take time.
+          - Reassure them if they checked before, it's good to review.
+      - step_2_understanding_forecast_uk:
+          title: Understanding the Forecast Values (UK)
+          description: Break down the two key forecast figures, noting the assumption
+            for the projection.
+          script_prompt: 'The official forecast usually shows two main figures. Let''s
+            look for those:
 
-  region:
-    check: region
-    prompt: "Where do you live?"
-    next: pension_path
+            The first value is based on your National Insurance record up to today.
 
-  pension_path:
-    branch:
-      if_region: UK
-        -> uk_nic
-      if_region: Ireland
-        -> ie_prsi
-      else:
-        -> general_info
+            The second value is a projection assuming you continue contributing fully
+            for the remaining years between now ([Current Age]) and your State Pension
+            Age ([SPA Age]).
 
-  uk_nic:
-    check: nic_years
-    prompt: "How many years of NIC payments have you made?"
-    if_missing: 
-      info: "Please check your record at gov.uk. We can continue with general questions in the meantime."
-      fallback: general_info
-    next: confirm_facts
+            '
+          questions:
+          - What is the forecast amount based on your NI record **up to today**?
+          - What is the projected forecast amount assuming you **continue to contribute**
+            until your State Pension Age of [SPA Age]?
+          - What date does it say you can claim your State Pension from? (Should match
+            SPA date)
+          - Does the projected forecast figure reach the 'full' new State Pension
+            amount? (Check current full amount on gov.uk)
+          - How many more qualifying years does it say you need (if any) to get that
+            projected amount?
+          - Does it mention a 'Contracted Out Pension Equivalent' (COPE) amount? If
+            so, what does it say?
+          guidance:
+          - The difference between your current age ([Current Age]) and your SPA ([SPA
+            Age]) is [Years Remaining to SPA]. The projection assumes contributions
+            for these years.
+          - Explain COPE briefly if mentioned (estimate related to past contracting
+            out, paid by provider, not govt).
+    phase_4_reviewing_ni_record_uk:
+      title: 'Phase 4: Reviewing the UK National Insurance Record'
+    phase_5_exploring_options_uk:
+      title: 'Phase 5: Exploring Options to Potentially Increase UK Pension'
+    phase_6_context_next_steps_uk:
+      title: 'Phase 6: Context and Next Steps (UK)'
+  ireland_flow:
+    title: Ireland State Pension Evaluation Flow
+    description: Detailed steps for evaluating the Irish State Pension (Contributory).
+    phase_1_introduction_setup_ie:
+      title: 'Phase 1: Introduction & Setup (Ireland)'
+      steps:
+      - step_1_purpose_ie:
+          title: Purpose (Ireland)
+          script_prompt: Okay, let's focus on the Irish State Pension (Contributory).
+            The aim is to guide you through checking your Irish PRSI record and understanding
+            what it means for your retirement planning here in Ireland, using official
+            Irish government resources like MyWelfare.ie.
+      - step_2_disclaimer_ie:
+          title: Disclaimer (Ireland)
+          script_prompt: Just a reminder, I'm not a financial advisor, so I can't
+            tell you what specific decisions to make. This is just a guided conversation
+            to help you find and understand the official information. For personalised
+            advice, you should speak to a qualified financial advisor.
+      - step_3_tools_needed_ie:
+          title: Tools Needed (Ireland)
+          script_prompt: To check your Irish record properly, you'll ideally need
+            internet access and details to log in to or set up your MyGovID account
+            to access MyWelfare.ie. Do you have these details or are you happy to
+            find them?
+    phase_2_gathering_basics_ie:
+      title: 'Phase 2: Gathering Basic Information (Ireland)'
+      steps:
+      - step_1_age_spa_ie:
+          title: Age & Irish State Pension Age
+          description: Establish DOB (for current age) and official State Pension
+            Age.
+          questions:
+          - Could you remind me of your date of birth? (This helps determine your
+            current age and SPA)
+          expect_field: age
+          action: Check the current Irish State Pension age on citizensinformation.ie
+            or gov.ie based on DOB.
+          link: https://www.citizensinformation.ie/en/social-welfare/social-welfare-payments/older-and-retired-people/state-pension-contributory/
+          script_prompt: Okay, based on your DOB, your current age is [Current Age]
+            and the current State Pension age in Ireland is [SPA Age]. You'll reach
+            this around [Date].
+      - step_2_planned_retirement_age_ie:
+          title: Planned Retirement Age (Ireland)
+          description: Capture the age the user plans to stop working.
+          questions:
+          - At what age do you currently plan to stop working and retire? (This might
+            be different from your State Pension Age)
+          expect_field: retirement_age
+    phase_3_checking_irish_prsi_record:
+      title: 'Phase 3: Checking Your Irish PRSI Record'
+    phase_4_understanding_prsi_record_ie:
+      title: 'Phase 4: Understanding Your PRSI Record (Ireland)'
+    phase_5_estimating_irish_pension:
+      title: 'Phase 5: Estimating Your Irish State Pension'
+      steps:
+      - step_1_official_forecast_ie:
+          title: Understanding the Official Estimate/Forecast (Ireland)
+          description: Prompt user to find estimate based on current record and potentially
+            a projection, noting the assumption.
+          script_prompt: 'MyWelfare.ie or your contribution statement is the best
+            place to find an estimate. Often, they might show or allow you to calculate
+            two figures:
 
-  ie_prsi:
-    check: prsi_years
-    prompt: "How many years of PRSI contributions do you have?"
-    if_missing:
-      info: "Check your record at MyWelfare.ie. Until then, we can only answer general questions."
-      fallback: general_info
-    next: confirm_facts
+            One based on your PRSI record up to today.
 
-  confirm_facts:
-    action: summarize_profile_and_projection
+            A projected forecast assuming you continue contributing fully for the
+            remaining years between now ([Current Age]) and your State Pension Age
+            ([SPA Age]).
 
-  general_info:
-    info: "Feel free to ask any questions you like about pensions in the UK or Ireland!"
+            '
+          questions:
+          - Can you find an estimate based on your PRSI record **to date**?
+          - Does it provide a **projected forecast** assuming you continue contributing
+            until your State Pension Age of [SPA Age]? (This might require using an
+            online calculator linked from MyWelfare or Citizens Information).
+          - What amount(s) does it show?
+          - What date does it estimate the pension would be payable from?
+          guidance:
+          - The difference between your current age ([Current Age]) and your SPA ([SPA
+            Age]) is [Years Remaining to SPA]. The projection likely assumes contributions
+            for these years.
+          - Irish forecasts might present this differently than the UK; focus on the
+            official figures provided.
+          link_calculator_info: https://www.citizensinformation.ie/en/social-welfare/social-welfare-payments/older-and-retired-people/state-pension-contributory/
+      - step_2_rough_estimate_ie (Optional):
+          title: Rough Estimate (Use with Caution)
+          script_prompt: If you know your total number of full contribution years,
+            we could use a simplified calculation for a *very rough* estimate, but
+            please remember the official forecast/estimate from MyWelfare.ie is the
+            accurate one to rely on, as the rules are complex.
+    phase_6_exploring_options_ireland:
+      title: 'Phase 6: Exploring Options to Potentially Improve Your Irish Pension'
+    phase_7_uk_pension_considerations_ie:
+      title: 'Phase 7: UK Pension Considerations (If Applicable - From Ireland)'
+    phase_8_context_next_steps_ie:
+      title: 'Phase 8: Context and Next Steps (Ireland Flow)'
+  step_ie_intro:
+    script_prompt: Okay, let's get started with your Irish pension.
+    next_step: step_ie_ask_prsi
+  step_ie_ask_prsi:
+    script_prompt: How many years of PRSI contributions do you have?
+    expect_field: prsi_years
+    next_step: step_ie_ask_ret_age
+  step_ie_ask_ret_age:
+    script_prompt: At what age do you plan to retire?
+    expect_field: retirement_age

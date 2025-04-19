@@ -27,7 +27,7 @@ def save_user_profile(user_id, field, value):
         profile = anon_profiles.get(user_id, {})
         profile[field] = value
         anon_profiles[user_id] = profile
-        return
+        return profile  # 🔁 Return for in-place use
 
     db = SessionLocal()
     profile = db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
@@ -40,7 +40,7 @@ def save_user_profile(user_id, field, value):
         if not hasattr(profile, field):
             logger.error(f"Field '{field}' does not exist in UserProfile for user {user_id}")
             db.close()
-            return
+            return profile
         setattr(profile, field, value)
 
     try:
@@ -51,6 +51,9 @@ def save_user_profile(user_id, field, value):
         db.rollback()
     finally:
         db.close()
+
+    return profile  # 🔁 Return for in-place use
+
 
 def save_chat_message(user_id, role, content):
     if not user_id or not role or not content:

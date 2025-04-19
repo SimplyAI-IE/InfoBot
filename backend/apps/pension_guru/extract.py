@@ -1,6 +1,7 @@
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../backend")))
+
 from backend.apps.base_app import BaseApp
 from memory import save_user_profile, get_user_profile, save_chat_message
 from .flow_engine import PensionFlow
@@ -14,21 +15,19 @@ class PensionGuruApp(BaseApp):
 
     def pre_prompt(self, profile, user_id):
         from .flow_engine import PensionFlow
-
-        # Skip scripted flow if region is already set
-        region = profile.get("region") if isinstance(profile, dict) else getattr(profile, "region", None)
-        if region and region.lower() in ["uk", "ireland"]:
-            return None
-
+        print("📡 pre_prompt triggered")
         flow = PensionFlow(profile, user_id)
         return flow.step()
 
-
     def block_response(self, user_input, profile):
+        region = ""
+
         if isinstance(profile, dict):
-            region = profile.get("region", "").lower()
-        else:
-            region = getattr(profile, "region", "").lower()
+            region = profile.get("region", "")
+        elif profile:
+            region = getattr(profile, "region", "")
+
+        region = region.lower()
 
         if region not in ["ireland", "uk"]:
             return (
@@ -85,24 +84,33 @@ class PensionGuruApp(BaseApp):
         profile_updated = False
         profile = get_user_profile(user_id)
 
+        print(f"🛠 Running extract_user_data for: {user_id} → '{msg}'")
         age = extract_age(msg_lower)
         if age is not None:
+            print(f"📌 Detected age: {age}")
             save_user_profile(user_id, "age", age)
+            profile = get_user_profile(user_id)
             profile_updated = True
 
         income = extract_income(msg_lower)
         if income is not None:
+            print(f"📌 Detected income: {income}")
             save_user_profile(user_id, "income", income)
+            profile = get_user_profile(user_id)
             profile_updated = True
 
         ret_age = extract_retirement_age(msg_lower)
         if ret_age is not None:
+            print(f"📌 Detected retirement age: {ret_age}")
             save_user_profile(user_id, "retirement_age", ret_age)
+            profile = get_user_profile(user_id)
             profile_updated = True
 
         region = extract_region(msg_lower)
         if region in ["Ireland", "UK"]:
+            print(f"📌 Detected region: {region}")
             save_user_profile(user_id, "region", region)
+            profile = get_user_profile(user_id)
             profile_updated = True
         elif region == "unsupported":
             block_msg = (
@@ -115,15 +123,69 @@ class PensionGuruApp(BaseApp):
 
         risk = extract_risk_profile(msg_lower)
         if risk:
+            print(f"📌 Detected risk profile: {risk}")
             save_user_profile(user_id, "risk_profile", risk)
+            profile = get_user_profile(user_id)
             profile_updated = True
 
         prsi_years = extract_prsi_years(msg_lower)
         if prsi_years is not None:
+            print(f"📌 Detected prsi_years: {prsi_years}")
             save_user_profile(user_id, "prsi_years", prsi_years)
+            profile = get_user_profile(user_id)
             profile_updated = True
 
-        return profile_updated
+        # -- Projection Logic --
+        profile = get_user_profile(user_id)
+        region = getattr(profile, "region", "").lower()
+        prsi_years = getattr(profile, "prsi_years", None)
+        age = getattr(profile, "age", None)
+        retirement_age = getattr(profile, "retirement_age", None)
+
+        if region == "ireland" and prsi_years and retirement_age and age:
+            calc = calculate_pension(region, prsi_years, age=age, retirement_age=retirement_age)
+
+            if calc:
+                now = calc["weekly_pension_now"]
+                future = calc["weekly_pension_future"]
+                now_fmt = f"{calc['currency']}{now:.2f}"
+                future_fmt = f"{calc['currency']}{future:.2f}"
+
+                reply = (
+                    f"Thanks! Based on {calc['prsi_years']} PRSI years and a retirement age of {calc['retirement_age']}:\n\n"
+                    f"If you stopped contributing today:\n"
+                    f"- {calc['contributions_now']} contributions → {now_fmt}/week\n\n"
+                    f"If you work until age {calc['retirement_age']}:\n"
+                    f"- {calc['contributions_future']} contributions → {future_fmt}/week\n\n"
+                    f"Would you like tips to boost your pension?"
+                )
+                save_chat_message(user_id, 'assistant', reply)
+
+        elif region == "ireland" and prsi_years:
+            if not retirement_age:
+                save_user_profile(user_id, "pending_action", "request_retirement_age")
+                profile = get_user_profile(user_id)
+                save_chat_message(user_id, 'assistant', "Thanks! At what age do you plan to retire?")
+            elif not age:
+                save_user_profile(user_id, "pending_action", "request_age")
+                profile = get_user_profile(user_id)
+                save_chat_message(user_id, 'assistant', "Great — and just to confirm, how old are you currently?")
+
+        
+        # Auto-advance flow step if expected field was filled
+        from .flow_engine import PensionFlow
+        flow = PensionFlow(profile, user_id)
+        current_step = flow.current_step
+        node = flow.flow.get(current_step, {})
+        expected_field = node.get("expect_field")
+        if expected_field and getattr(profile, expected_field, None):
+            next_step = node.get("next_step")
+            if next_step:
+                print(f"➡️ Auto-advancing to step: {next_step}")
+                save_user_profile(user_id, "pending_step", next_step)
+                profile = get_user_profile(user_id)
+        return get_user_profile(user_id)
+    
 
     def tips_reply(self):
         return (
@@ -139,34 +201,35 @@ class PensionGuruApp(BaseApp):
             return "No user profile available."
 
         parts = []
-        if profile.region: parts.append(f"Region: {profile.region}")
-        if profile.age: parts.append(f"Age: {profile.age}")
-        if profile.income:
-            currency = '£' if profile.region == 'UK' else '€'
-            parts.append(f"Income: {currency}{profile.income:,}")
-        if profile.retirement_age: parts.append(f"Retirement Age Goal: {profile.retirement_age}")
-        if profile.risk_profile: parts.append(f"Risk Tolerance: {profile.risk_profile}")
-        if hasattr(profile, 'prsi_years') and profile.prsi_years is not None:
-            parts.append(f"PRSI Contributions: {profile.prsi_years} years")
+
+        get = profile.get if isinstance(profile, dict) else lambda k: getattr(profile, k, None)
+
+        region = get("region")
+        if region:
+            parts.append(f"Region: {region}")
+
+        age = get("age")
+        if age:
+            parts.append(f"Age: {age}")
+
+        income = get("income")
+        if income:
+            currency = "£" if region and region.lower() == "uk" else "€"
+            try:
+                parts.append(f"Income: {currency}{income:,}")
+            except Exception:
+                parts.append(f"Income: {currency}{income}")
+
+        retirement_age = get("retirement_age")
+        if retirement_age:
+            parts.append(f"Retirement Age Goal: {retirement_age}")
+
+        risk = get("risk_profile")
+        if risk:
+            parts.append(f"Risk Tolerance: {risk}")
+
+        prsi = get("prsi_years")
+        if prsi is not None:
+            parts.append(f"PRSI Contributions: {prsi} years")
 
         return "User Profile Summary: " + "; ".join(parts)
-
-    def handle_empty_input(self, user_id, history, profile, tone):
-        if profile and getattr(profile, "pending_action", None) == "offer_tips":
-            save_user_profile(user_id, "pending_action", None)
-            reply = self.tips_reply()
-            save_chat_message(user_id, 'assistant', reply)
-            return reply
-
-        if history and len(history) >= 2:
-            if "how many years of prsi contributions" in history[-2]["content"].lower():
-                if profile and profile.region in ["Ireland", "UK"] and getattr(profile, "prsi_years", None):
-                    calc = calculate_pension(profile.region, profile.prsi_years)
-                    reply = (
-                        f"For {calc.get('prsi_years') or calc.get('ni_years')} years of contributions in {calc['region']}:\n"
-                        f"- Method: {calc['method']}\n"
-                        f"- Weekly Pension ≈ {calc['currency']}{calc['weekly_pension']}\n\n"
-                        f"Would you like tips to boost your pension?"
-                    )
-                    save_chat_message(user_id, 'assistant', reply)
-                    return reply

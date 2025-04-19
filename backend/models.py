@@ -10,7 +10,7 @@ class UserProfile(Base):
     __tablename__ = 'user_profiles'
 
     user_id = Column(String, primary_key=True)
-    region = Column(String)
+    region = Column(String, nullable=True)
     age = Column(Integer)
     income = Column(Integer)
     retirement_age = Column(Integer)

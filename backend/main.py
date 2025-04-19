@@ -30,12 +30,15 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex="https://.*\.onrender\.com",
+    allow_origins=[
+        "https://infobot-h7cr.onrender.com",  # Keep deployed origin
+        "http://localhost:5500"              # Add local dev origin <<-- ADD THIS
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]
 )
-print("✅ CORS enabled for:", "https://infobot-h7cr.onrender.com")
+print("✅ CORS enabled for:", ["https://infobot-h7cr.onrender.com", "http://localhost:5500"]) # Optional: update print
 
 logger.info("Initializing database...")
 init_db()
@@ -63,22 +66,26 @@ async def chat(req: ChatRequest, request: Request):
     user_message_lower = user_message.lower()
     logger.info(f"Received chat request from user_id: {user_id}, message: '{user_message}'")
 
+    # ✅ Always extract first so pre_prompt logic can respond correctly
+    profile = extract.extract_user_data(user_id, user_message)
+
+
     if user_message == "__INIT__":
         logger.info(f"Handling __INIT__ command for user_id: {user_id}")
+        scripted = extract.pre_prompt(profile, user_id)
+        if scripted:
+            return {"response": scripted, "user_id": user_id}
         reply = get_gpt_response(user_message, user_id, tone=req.tone)
         return {"response": reply, "user_id": user_id}
 
     if not user_message:
         logger.warning(f"Received empty message from user_id: {user_id}")
-        profile = get_user_profile(user_id)
         history = get_chat_history(user_id, limit=2)
-
         reply = extract.handle_empty_input(user_id, history, profile, req.tone)
         if reply:
             return {"response": reply, "user_id": user_id}
         raise HTTPException(status_code=400, detail="Message cannot be empty")
 
-    profile = get_user_profile(user_id)
     history = get_chat_history(user_id, limit=2)
     if extract.wants_tips(profile, user_message_lower, history):
         reply = extract.tips_reply()
@@ -89,16 +96,10 @@ async def chat(req: ChatRequest, request: Request):
 
     logger.info(f"Proceeding with standard chat flow for user {user_id}")
     try:
-        extract.extract_user_data(user_id, user_message)
-        profile = get_user_profile(user_id)
-    except Exception as e:
-        logger.error(f"Error extracting data for user {user_id}: {e}", exc_info=True)
-
-    try:
         reply = get_gpt_response(user_message, user_id, tone=req.tone)
         logger.info(f"GPT response generated successfully for user_id: {user_id}")
     except Exception as e:
-        logger.error(f"Error getting GPT response for user_id: {user_id}: {e}", exc_info=True)
+        logger.error(f"Error during GPT flow for user_id: {user_id}: {e}", exc_info=True)
         reply = "I'm sorry, I encountered a technical issue trying to process that. Could you try rephrasing?"
 
     save_chat_message(user_id, 'user', user_message)
@@ -111,6 +112,8 @@ async def chat(req: ChatRequest, request: Request):
         logger.warning(f"Profile for user {user_id} exists but missing 'pending_action' attribute. Cannot set state.")
 
     return {"response": reply, "user_id": user_id}
+
+
 
 @app.post("/auth/google")
 async def auth_google(user_data: dict):
