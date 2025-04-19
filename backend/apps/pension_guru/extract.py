@@ -64,24 +64,6 @@ class PensionGuruApp(BaseApp):
 
         return get_user_profile(user_id)
 
-    def block_response(self, user_input, profile):
-        return None
-
-    def tips_reply(self):
-        return "Tips feature not yet implemented."
-
-    def should_offer_tips(self, reply):
-        return False
-
-    def wants_tips(self, profile, msg, history):
-        return False
-
-    def format_user_context(self, profile):
-        return "User profile summary not available."
-
-    def render_profile_field(self, field, profile):
-        return "—"
-    
     def get_pension_calculation_reply(self, user_id: str) -> str:
         profile = get_user_profile(user_id)
         region = getattr(profile, "region", "").lower()
@@ -100,11 +82,28 @@ class PensionGuruApp(BaseApp):
         future_fmt = f"{calc['currency']}{calc['weekly_pension_future']:.2f}"
 
         return (
-            f"Thanks! Based on {calc['prsi_years']} PRSI years and retiring at {retirement_age}:\n\n"
-            f"If you stopped contributing today:\n"
-            f"- {calc['contributions_now']} contributions → {now_fmt}/week\n\n"
-            f"If you work until age {retirement_age}:\n"
-            f"- {calc['contributions_future']} contributions → {future_fmt}/week\n\n"
+            f"Thanks! Based on {calc['prsi_years']} PRSI years and retiring at {retirement_age}:"
+            f"If you stopped contributing today:"
+            f"- {calc['contributions_now']} contributions → {now_fmt}/week"
+            f"If you work until age {retirement_age}:"
+            f"- {calc['contributions_future']} contributions → {future_fmt}/week"
             f"Would you like tips to boost your pension?"
         )
 
+    def block_response(self, user_input, profile):
+        return None
+
+    def tips_reply(self):
+        return "Tips feature not yet implemented."
+
+    def should_offer_tips(self, reply):
+        return False
+
+    def wants_tips(self, profile, msg, history):
+        return False
+
+    def format_user_context(self, profile):
+        return "User profile summary not available."
+
+    def render_profile_field(self, field, profile):
+        return "—"
