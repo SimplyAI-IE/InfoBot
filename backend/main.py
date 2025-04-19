@@ -61,7 +61,6 @@ async def chat(req: ChatRequest, request: Request):
     user_id = req.user_id or f"anon_{uuid4().hex[:10]}"
     user_message = req.message.strip()
     user_message_lower = user_message.lower()
-    extract.extract_user_data(user_id, user_message)
     logger.info(f"Received chat request from user_id: {user_id}, message: '{user_message}'")
 
     if user_message == "__INIT__":
