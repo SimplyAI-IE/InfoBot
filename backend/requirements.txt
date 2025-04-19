@@ -6,3 +6,4 @@ sqlalchemy
 weasyprint
 pydantic
 pyyaml
+langdetect

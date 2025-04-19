@@ -74,6 +74,8 @@ if not isinstance(extract_instance, BaseApp):
     raise TypeError(f"{app_id} extract module's class '{class_name}' does not implement required BaseApp interface.")
 logger.info(f"✅ Loaded app: {app_id} using class {class_name}")
 
+from backend.apps.concierge.concierge_api import router as concierge_router
+app.include_router(concierge_router)
 
 @app.post("/chat")
 async def chat(req: ChatRequest, request: Request):
