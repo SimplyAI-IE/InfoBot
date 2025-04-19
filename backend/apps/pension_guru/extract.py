@@ -1,8 +1,7 @@
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../backend")))
-
-from apps.base_app import BaseApp
+from backend.apps.base_app import BaseApp
 from memory import save_user_profile, get_user_profile, save_chat_message
 from .extract_user_data import (
     extract_age, extract_income, extract_retirement_age,
