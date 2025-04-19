@@ -62,7 +62,7 @@ def get_gpt_response(user_input, user_id, tone=""):
     logger.info(f"get_gpt_response called for user_id: {user_id}")
     profile = get_user_profile(user_id)
 # Optional pre-GPT flow from app
-    scripted_prompt = extract.pre_prompt(profile)
+    scripted_prompt = extract.pre_prompt(profile, user_id)
     if scripted_prompt and user_input.strip() == "__INIT__":
         return scripted_prompt
     block_msg = None
