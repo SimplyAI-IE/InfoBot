@@ -15,7 +15,10 @@
 
     <div id="google-login" style="margin-bottom: 20px;"></div>
 
-    <div id="chat-ui" style="display: none;">
+    <div id="chat-ui">
+      <p id="anon-banner" style="font-size: 0.9rem; color: #555; margin-bottom: 8px; display: none;">
+        You're chatting anonymously. Your answers will not be saved.
+      </p>
       <div id="chatbox"></div>
       <form id="chat-form">
         <input type="text" id="user-input" placeholder="Type your question..." required />
@@ -165,7 +168,10 @@
       ).join(''));
       return JSON.parse(json);
     }
-
+    const userId = sessionStorage.getItem("user_id");
+if (!userId) {
+  document.getElementById("anon-banner").style.display = "block";
+}
     window.onload = function () {
       const name = sessionStorage.getItem("user_name");
       if (name) showUserGreeting(name);
