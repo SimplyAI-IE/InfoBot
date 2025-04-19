@@ -1,5 +1,6 @@
 {
     "name": "Pension Guru 2",
+    "class_name": "PensionGuruApp",
     "tone_instruction_default": "14",
     "logo_url": "https://simplyai.ie/buddy-icon.png",
     "init_message": "Hi! What would you like to know about your pension?",

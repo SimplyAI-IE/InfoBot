@@ -1,62 +1,65 @@
 # --- gpt_engine.py ---
+import os
+import json
+import logging
+import importlib
+from dotenv import load_dotenv
 from openai import OpenAI
 from memory import get_user_profile, get_chat_history
-from importlib import import_module
 from models import SessionLocal, User
-import json
-import os
-import logging
+from apps.base_app import BaseApp
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
-
-
-# Ensure API key is loaded
-from dotenv import load_dotenv
+# Load environment variables
 load_dotenv()
 
+# Load app config
 app_id = os.getenv("ACTIVE_APP")
-
 if not app_id:
     raise RuntimeError("Missing ACTIVE_APP in .env")
 
-app_path = f"apps.{app_id}"
+app_path = f"apps/{app_id}"
+config_path = f"{app_path}/config.json"
+if not os.path.exists(config_path):
+    raise FileNotFoundError(f"Missing config.json for app: {app_id}")
+config = json.load(open(config_path))
 
-extract = import_module(f"{app_path}.extract")
+# Load the prompt
+prompt_path = f"{app_path}/{config['system_prompt_file']}"
+if not os.path.exists(prompt_path):
+    raise FileNotFoundError(f"Prompt file not found: {prompt_path}")
+with open(prompt_path, encoding="utf-8") as f:
+    SYSTEM_PROMPT = f.read()
 
-# Check if API key is available
+# Dynamically load app plugin
+module = importlib.import_module(f"{app_path}.extract")
+class_name = config.get("class_name", "PensionGuruApp")
+extract_class = getattr(module, class_name)
+extract: BaseApp = extract_class()
+
+if not isinstance(extract, BaseApp):
+    raise TypeError(f"{class_name} must implement BaseApp interface")
+
+# Load OpenAI client
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
     logger.critical("OPENAI_API_KEY environment variable not set!")
 client = OpenAI(api_key=api_key)
 
-config = json.load(open(f"apps/{app_id}/config.json"))
-
-prompt_path = f"apps/{app_id}/{config['system_prompt_file']}"
-with open(prompt_path, encoding="utf-8") as f:
-    SYSTEM_PROMPT = f.read()
-
-
-CHAT_HISTORY_LIMIT = 5  # Reduced to focus on recent context
-
+CHAT_HISTORY_LIMIT = 5
 
 def get_gpt_response(user_input, user_id, tone=""):
     logger.info(f"get_gpt_response called for user_id: {user_id}")
-   # gpt_engine.py (Corrected section)
-
     profile = get_user_profile(user_id)
 
-    block_msg = None # <-- ADD THIS LINE: Initialize block_msg
-
+    block_msg = None
     if user_input != "__INIT__":
-        block_msg = extract.block_response(user_input, profile) # Assignment happens here
+        block_msg = extract.block_response(user_input, profile)
+        if block_msg:
+            return block_msg
 
-    # This check is now safe
-    if block_msg:
-        return block_msg
-
-# The rest of the function continues as before
     db = SessionLocal()
     user = db.query(User).filter(User.id == user_id).first()
     db.close()
@@ -67,8 +70,7 @@ def get_gpt_response(user_input, user_id, tone=""):
         if profile:
             summary = extract.format_user_context(profile)
             return f"Welcome back, {name}! Here's what I remember: {summary}. What would you like to explore today?"
-        else:
-            return config.get("init_message", "Welcome! How can I assist you today?")
+        return config.get("init_message", "Welcome! How can I assist you today?")
 
     logger.info(f"Processing regular message for user_id: {user_id}")
     history = get_chat_history(user_id, limit=CHAT_HISTORY_LIMIT)
@@ -82,9 +84,7 @@ def get_gpt_response(user_input, user_id, tone=""):
         "pro": "Use financial terminology and industry language for a professional audience.",
         "genius": "Use technical depth and precision appropriate for a professor. Do not simplify."
     }
-
     tone_instruction = tone_map.get(tone, "")
-
     system_message = SYSTEM_PROMPT.replace("{{tone_instruction}}", tone_instruction) + "\n\n" + summary
 
     logger.debug(f"Formatted profile summary: {summary}")
@@ -101,16 +101,15 @@ def get_gpt_response(user_input, user_id, tone=""):
     try:
         logger.info(f"Calling OpenAI API for user_id: {user_id}...")
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",  # Change to "gpt-4.1" if available
+            model="gpt-3.5-turbo",  # Change to "gpt-4.1" if needed
             messages=messages,
             temperature=0.7
         )
         reply = response.choices[0].message.content
         logger.info(f"OpenAI API call successful for user_id: {user_id}")
         logger.debug(f"OpenAI Response: {reply}")
+        return reply
     except Exception as e:
         logger.error(f"Error calling OpenAI API for user_id {user_id}: {e}", exc_info=True)
-        reply = "I'm sorry, but I encountered a technical difficulty while processing your request. Please try again in a few moments."
-
-    return reply
+        return "I'm sorry, but I encountered a technical difficulty while processing your request. Please try again in a few moments."
 # --- End of gpt_engine.py ---

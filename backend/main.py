@@ -15,17 +15,17 @@ from weasyprint import HTML
 from io import BytesIO
 import re
 import logging
-import os
+import importlib
 from typing import Optional
-from gpt_engine import extract  # already imported dynamically
+from apps.base_app import BaseApp
 
 os.environ["G_MESSAGES_DEBUG"] = ""
-# Configure logging
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
 load_dotenv()
 app = FastAPI()
+
 app.add_middleware(
     CORSMiddleware,
     allow_origin_regex="https://.*\.onrender\.com",
@@ -35,7 +35,6 @@ app.add_middleware(
 )
 print("✅ CORS enabled for:", "https://infobot-h7cr.onrender.com")
 
-# Create DB table(s)
 logger.info("Initializing database...")
 init_db()
 logger.info("Database initialized.")
@@ -45,12 +44,16 @@ class ChatRequest(BaseModel):
     message: str
     tone: str = ""
 
-# Set of affirmative responses for state checking
-affirmative_responses = {"sure", "yes", "ok", "okay", "fine", "yep", "please", "yes please"}
-
-
 app_id = os.getenv("ACTIVE_APP")
 config = json.load(open(f"apps/{app_id}/config.json"))
+
+# Plugin-based dynamic app loading
+module = importlib.import_module(f"apps.{app_id}.extract")
+extract_class = getattr(module, config.get("class_name", "PensionGuruApp"))
+extract: BaseApp = extract_class()
+
+if not isinstance(extract, BaseApp):
+    raise TypeError(f"{app_id} extract module does not implement required BaseApp interface.")
 
 @app.post("/chat")
 async def chat(req: ChatRequest):
@@ -60,7 +63,6 @@ async def chat(req: ChatRequest):
     extract.extract_user_data(user_id, user_message)
     logger.info(f"Received chat request from user_id: {user_id}, message: '{user_message}'")
 
-    # --- Handle __INIT__ separately ---
     if user_message == "__INIT__":
         logger.info(f"Handling __INIT__ command for user_id: {user_id}")
         reply = get_gpt_response(user_message, user_id, tone=req.tone)
@@ -71,26 +73,20 @@ async def chat(req: ChatRequest):
         profile = get_user_profile(user_id)
         history = get_chat_history(user_id, limit=2)
 
-        if hasattr(extract, "handle_empty_input"):
-            reply = extract.handle_empty_input(user_id, history, profile, req.tone)
-            if reply:
-                return {"response": reply}
-
+        reply = extract.handle_empty_input(user_id, history, profile, req.tone)
+        if reply:
+            return {"response": reply}
         raise HTTPException(status_code=400, detail="Message cannot be empty")
 
-
-    # --- State Handling Logic ---
     profile = get_user_profile(user_id)
-    give_tips_directly = False
     history = get_chat_history(user_id, limit=2)
-    if hasattr(extract, "wants_tips") and extract.wants_tips(profile, user_message_lower, history):
+    if extract.wants_tips(profile, user_message_lower, history):
         reply = extract.tips_reply()
         save_chat_message(user_id, 'user', user_message)
         save_chat_message(user_id, 'assistant', reply)
         save_user_profile(user_id, "pending_action", None)
         return {"response": reply}
 
-    # --- Standard Chat Flow ---
     logger.info(f"Proceeding with standard chat flow for user {user_id}")
     try:
         extract.extract_user_data(user_id, user_message)
@@ -110,8 +106,7 @@ async def chat(req: ChatRequest):
     if reply:
         save_chat_message(user_id, 'assistant', reply)
 
-    # --- State Setting Logic ---
-    if hasattr(extract, "should_offer_tips") and extract.should_offer_tips(reply):
+    if extract.should_offer_tips(reply):
         save_user_profile(user_id, "pending_action", "offer_tips")
     elif profile and not hasattr(profile, 'pending_action'):
         logger.warning(f"Profile for user {user_id} exists but missing 'pending_action' attribute. Cannot set state.")
@@ -133,26 +128,17 @@ async def auth_google(user_data: dict):
 
         if not user:
             logger.info(f"New user detected, creating user and profile entry for user_id: {user_id}")
-            user = User(
-                id=user_id,
-                name=user_data.get("name", "Unknown User"),
-                email=user_data.get("email")
-            )
+            user = User(id=user_id, name=user_data.get("name", "Unknown User"), email=user_data.get("email"))
             db.add(user)
             if not profile:
                 profile = UserProfile(user_id=user_id)
                 db.add(profile)
             db.commit()
             db.refresh(user)
-            logger.info(f"Successfully created user and profile entry for user_id: {user_id}")
-        else:
-            logger.info(f"Existing user found for user_id: {user_id}")
-            if not profile:
-                logger.warning(f"Existing user {user_id} found, but profile missing. Creating profile.")
-                profile = UserProfile(user_id=user_id)
-                db.add(profile)
-                db.commit()
-
+        elif not profile:
+            profile = UserProfile(user_id=user_id)
+            db.add(profile)
+            db.commit()
     except Exception as e:
         db.rollback()
         logger.error(f"Database error during auth for user_id {user_id}: {e}", exc_info=True)
@@ -165,12 +151,10 @@ async def auth_google(user_data: dict):
 @app.get("/export-pdf")
 async def export_pdf(user_id: str):
     profile = get_user_profile(user_id)
-
     if not profile:
         raise HTTPException(status_code=404, detail="No profile found for PDF export.")
 
     db = SessionLocal()
-    messages = []
     try:
         messages = (
             db.query(ChatHistory)
@@ -178,8 +162,6 @@ async def export_pdf(user_id: str):
             .order_by(ChatHistory.timestamp)
             .all()
         )
-    except Exception as e:
-        logger.error(f"Failed to retrieve chat history for PDF export for user {user_id}: {e}")
     finally:
         db.close()
 
@@ -187,24 +169,12 @@ async def export_pdf(user_id: str):
         val = getattr(obj, attr, None)
         return val if val is not None else default
 
-    income_str = "—"
-    if hasattr(profile, 'income') and profile.income is not None:
-        region = getattr(profile, 'region', None)
-        currency = '£' if region == 'UK' else '€'
-        try:
-            income_str = f"{currency}{profile.income:,}"
-        except (TypeError, ValueError):
-            income_str = f"{currency}{profile.income}"
-
     profile_fields = config.get("profile_fields", [])
     profile_text = f"<h1>{config.get('pdf_title', 'Assistant Summary')}</h1><h2>User Info</h2><ul>"
 
     for field in profile_fields:
         label = field.replace("_", " ").title()
-        if hasattr(extract, "render_profile_field"):
-            rendered = extract.render_profile_field(field, profile)
-        else:
-            rendered = safe_get(profile, field)
+        rendered = extract.render_profile_field(field, profile)
         profile_text += f"<li>{label}: {rendered}</li>"
 
     profile_text += "</ul>"
@@ -214,7 +184,7 @@ async def export_pdf(user_id: str):
         for m in messages:
             role = "You" if m.role == "user" else config.get("name", "Assistant")
             content = getattr(m, 'content', '') or ''
-            content_escaped = content.replace("&", "&").replace("<", "<").replace(">", ">")
+            content_escaped = content.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
             chat_log += f"<li><strong>{role}:</strong> {content_escaped}</li>"
     else:
         chat_log += "<li>No chat history found.</li>"
@@ -242,12 +212,9 @@ async def forget_chat_history(request: Request):
 
     db = SessionLocal()
     try:
-        deleted_chats = db.query(ChatHistory).filter(ChatHistory.user_id == user_id).delete(synchronize_session=False)
-        logger.info(f"Deleted {deleted_chats} chat messages for user_id: {user_id}")
-        deleted_profile = db.query(UserProfile).filter(UserProfile.user_id == user_id).delete(synchronize_session=False)
-        logger.info(f"Deleted {deleted_profile} profile entries for user_id: {user_id}")
+        db.query(ChatHistory).filter(ChatHistory.user_id == user_id).delete(synchronize_session=False)
+        db.query(UserProfile).filter(UserProfile.user_id == user_id).delete(synchronize_session=False)
         db.commit()
-        logger.info(f"Successfully cleared chat history and profile for user_id: {user_id}")
     except Exception as e:
         db.rollback()
         logger.error(f"Error deleting data for user {user_id}: {e}", exc_info=True)
@@ -256,10 +223,9 @@ async def forget_chat_history(request: Request):
         db.close()
 
     return {"status": "ok", "message": "Chat history and profile cleared."}
-    
+
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-import os
 
 static_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../public"))
 
