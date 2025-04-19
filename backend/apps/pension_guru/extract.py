@@ -4,6 +4,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 
 from backend.apps.base_app import BaseApp
 from memory import save_user_profile, get_user_profile, save_chat_message
+from .flow_engine import PensionFlow
 # Note: PensionFlow import moved to main.py where it's instantiated
 from .extract_user_data import (
     extract_age, extract_income, extract_retirement_age,
@@ -126,6 +127,16 @@ class PensionGuruApp(BaseApp):
                 "Please consult a local advisor or your national pension authority for help."
             )
             save_chat_message(user_id, 'assistant', block_msg)
+
+        flow = PensionFlow(profile, user_id)
+        current_step = flow.current_step
+        node = flow.flow.get(current_step, {})
+        expected_field = node.get("expect_field")
+        if expected_field and getattr(profile, expected_field, None):
+            next_step = node.get("next_step")
+            if next_step:
+                print(f"➡️ Auto-advancing to step: {next_step}")
+                save_user_profile(user_id, "pending_step", next_step)
             # Maybe return a special value or raise an exception to signal blockage in main.py?
             # For now, just save message and return current profile. main.py block_response will catch it later.
 
