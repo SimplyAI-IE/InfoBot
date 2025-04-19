@@ -13,8 +13,18 @@ from .pension_calculator import calculate_pension
 class PensionGuruApp(BaseApp):
 
     def pre_prompt(self, profile):
-        flow = PensionFlow(profile)
-        return flow.step("welcome")
+        from .flow_engine import PensionFlow
+
+        # Skip if no flow is required
+        if hasattr(profile, "region") and profile.region and profile.region.lower() in ["uk", "ireland"]:
+            return None
+
+        # Run the scripted flow
+        flow = PensionFlow(profile, profile.user_id)
+        prompt = flow.step()
+
+        return prompt if prompt else None
+
 
     def block_response(self, user_input, profile):
         region = getattr(profile, "region", None)

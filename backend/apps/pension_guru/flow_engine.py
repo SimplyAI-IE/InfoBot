@@ -1,30 +1,44 @@
 import os
 import yaml
+from memory import save_user_profile
 
 class PensionFlow:
-    def __init__(self, profile):
+    def __init__(self, profile, user_id):
         self.profile = profile
-        flow_path = os.path.join(os.path.dirname(__file__), "conversation_flow.yaml")
-        with open(flow_path, "r") as f:
+        self.user_id = user_id
+        self.flow_path = os.path.join(os.path.dirname(__file__), "conversation_flow.yaml")
+        with open(self.flow_path, "r") as f:
             self.flow = yaml.safe_load(f)["conversation_flow"]
 
-    def step(self, current="welcome"):
-        node = self.flow.get(current, {})
+        self.current_step = getattr(profile, "pending_step", "welcome")
+
+    def step(self):
+        node = self.flow.get(self.current_step, {})
         check_field = node.get("check")
 
-        # If field is missing, return the prompt
+        # If field is missing, prompt for it
         if check_field and not getattr(self.profile, check_field, None):
             return node.get("prompt")
 
-        # Branch logic: region-based routing
+        # Branching logic
         if "branch" in node:
             region = getattr(self.profile, "region", "").lower()
-            if region == "uk":
-                return self.step("uk_nic")
-            elif region == "ireland":
-                return self.step("ie_prsi")
-            else:
-                return self.step("general_info")
+            next_branch = (
+                "uk_nic" if region == "uk" else
+                "ie_prsi" if region == "ireland" else
+                "general_info"
+            )
+            save_user_profile(self.user_id, "pending_step", next_branch)
+            self.current_step = next_branch
+            return self.step()
 
-        # Final fallback: return any message
-        return node.get("prompt") or node.get("info")
+        # Advance if possible
+        next_step = node.get("next")
+        if next_step:
+            save_user_profile(self.user_id, "pending_step", next_step)
+            self.current_step = next_step
+            return self.step()
+
+        # Flow complete
+        save_user_profile(self.user_id, "pending_step", None)
+        return None
