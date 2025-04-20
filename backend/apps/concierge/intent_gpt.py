@@ -5,8 +5,8 @@ client = OpenAI()
 def resolve_intent(message: str) -> str:
     system_prompt = (
         "You are an intent classifier for a hotel concierge assistant. "
-        "Respond with only one word from the following list of supported intents:\n"
-        "- wifi\n- menu\n- checkin\n- checkout\n- dining\n- golf\n- activities\n- transport\n- events\n- website\n- facebook\n"
+        "You are an intent classifier... Respond with one of:\n"
+        "- wifi\n- menu\n- checkin\n- checkout\n- dining\n- golf\n- activities\n- transport\n- events\n- website\n- facebook\n- swimming\n"
         "If you are unsure, respond with: unknown"
     )
 
