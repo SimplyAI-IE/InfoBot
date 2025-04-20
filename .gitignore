@@ -16,3 +16,10 @@ __pycache__/
 # Ignore cache contents, but keep the folder
 cache/*
 !cache/.gitkeep
+
+# OCR + menu image data
+backend/apps/concierge/readImages/*
+!backend/apps/concierge/readImages/.gitkeep
+
+backend/apps/concierge/ocr_cache/*
+!backend/apps/concierge/ocr_cache/.gitkeep
