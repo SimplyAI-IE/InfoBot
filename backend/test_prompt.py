@@ -1,4 +1,4 @@
-from gpt_engine import get_gpt_response
+from backend.gpt_engine import get_gpt_response
 from memory import save_user_profile
 from apps.pension_guru.extract import extract_user_data  # ✅ correct
 import sys

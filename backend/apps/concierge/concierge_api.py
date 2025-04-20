@@ -3,9 +3,26 @@ from pydantic import BaseModel
 from pathlib import Path
 import yaml
 
-from backend.gpt_engine import concierge_gpt_response  # Make sure this exists
+from backend.apps.concierge.concierge_gpt import concierge_gpt_response # Make sure this exists
+
+from backend.apps.concierge.whitesands_scraper import scrape_whitesands_raw, parse_whitesands_content
+from backend.apps.concierge.whitesands_scraper import get_cached_whitesands_facts
+
+
+
+
 
 router = APIRouter()
+
+@router.get("/concierge/facts")
+def get_whitesands_facts():
+    raw = scrape_whitesands_raw()
+    structured = parse_whitesands_content(raw)
+    return {"facts": structured}
+
+@router.get("/concierge/facts")
+def get_whitesands_facts():
+    return {"facts": get_cached_whitesands_facts()}
 
 # --- Models ---
 class ConciergeQuery(BaseModel):
