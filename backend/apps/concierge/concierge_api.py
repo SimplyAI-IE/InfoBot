@@ -1,61 +1,62 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Body
 from pydantic import BaseModel
+from pathlib import Path
 import yaml
-from langdetect import detect
+
+from backend.gpt_engine import concierge_gpt_response  # Make sure this exists
 
 router = APIRouter()
 
-with open("backend/apps/concierge/concierge_knowledge.yaml", "r") as f:
-    knowledge = yaml.safe_load(f)
-
+# --- Models ---
 class ConciergeQuery(BaseModel):
     message: str
 
+# --- Load Knowledge Base ---
+with open(Path(__file__).parent / "concierge_knowledge.yaml", "r", encoding="utf-8") as f:
+    knowledge = yaml.safe_load(f)
+
+# --- Load Follow-Up Flow ---
+with open(Path(__file__).parent / "concierge_flow.yaml", "r", encoding="utf-8") as f:
+    concierge_flow = yaml.safe_load(f)["intents"]
+
+# --- Intent Matching (simple substring search) ---
+def match_intent(message: str):
+    msg = message.lower()
+
+    # Check hotel keys
+    for key in knowledge["hotel"]:
+        if key in msg:
+            return key
+
+    # Check area keys
+    for key in knowledge["area"]["ballyheigue"]:
+        if key in msg:
+            return key
+
+    return None
+
+# --- Main Endpoint ---
 @router.post("/concierge")
-async def concierge_response(req: ConciergeQuery):
-    msg = req.message.strip().lower()
-    lang = detect(msg)
+async def handle_concierge(req: ConciergeQuery):
+    intent = match_intent(req.message)
 
-    if "check" in msg or "check-in" in msg or "check out" in msg:
-        return {
-            "response": (
-                f"Check-in is from **{knowledge['hotel']['checkin']}**, "
-                f"and checkout is by **{knowledge['hotel']['checkout']}**."
-            )
-        }
+    if intent:
+        # HOTEL INTENTS
+        if intent in knowledge["hotel"]:
+            response = knowledge["hotel"][intent]
 
-    elif "wifi" in msg:
-        wifi_info = knowledge['hotel']['wifi']
-        return {
-            "response": f"The Wi-Fi details are: {knowledge['hotel']['wifi']}"
-        }
+        # AREA INTENTS
+        elif intent in knowledge["area"]["ballyheigue"]:
+            val = knowledge["area"]["ballyheigue"][intent]
+            response = "\n".join(val) if isinstance(val, list) else val
 
-    elif "facebook" in msg:
-        return {
-            "response": f"You can view the hotel's Facebook page here: [Facebook]({knowledge['hotel']['facebook']})"
-        }
+        # Add follow-up if applicable
+        follow_up = concierge_flow.get(intent, {}).get("follow_up")
+        if follow_up:
+            response += f" {follow_up}"
 
-    elif "website" in msg:
-        return {
-            "response": f"The official website is [whitesands.ie]({knowledge['hotel']['website']})"
-        }
+        return {"response": response}
 
-    elif "dine" in msg or "restaurant" in msg or "eat" in msg:
-        options = "\n".join(f"- {place}" for place in knowledge["area"]["ballyheigue"]["dining"])
-        return {
-            "response": f"Recommended places to eat near Ballyheigue:\n\n{options}"
-        }
-
-    elif "do" in msg or "see" in msg or "activity" in msg:
-        activities = "\n".join(f"- {thing}" for thing in knowledge["area"]["ballyheigue"]["activities"])
-        return {
-            "response": f"Things to do in Ballyheigue:\n\n{activities}"
-        }
-
-    else:
-        return {
-            "response": (
-                "I'm here to help with hotel info, check-in times, Wi-Fi, local attractions, or dining. "
-                "Ask me anything related to White Sands Hotel or Ballyheigue!"
-            )
-        }
+    # GPT Fallback
+    gpt_reply = concierge_gpt_response(req.message)
+    return {"response": gpt_reply}
