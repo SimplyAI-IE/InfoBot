@@ -2,7 +2,7 @@
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../backend")))
-
+from backend.apps.concierge.startup import preload_concierge_assets
 from backend.apps.base_app import BaseApp
 from memory import save_user_profile, get_user_profile
 from .flow_engine import PensionFlow
@@ -12,6 +12,9 @@ from .extract_user_data import (
 )
 from .pension_calculator import calculate_pension
 
+class ConciergeApp(BaseApp):
+    def startup(self):
+        preload_concierge_assets()
 class PensionGuruApp(BaseApp):
     def extract_user_data(self, user_id: str, msg: str):
         msg_lower = msg.lower()

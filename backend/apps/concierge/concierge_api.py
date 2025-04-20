@@ -2,7 +2,7 @@ from fastapi import APIRouter, Body
 from pydantic import BaseModel
 from pathlib import Path
 import yaml
-
+from backend.apps.concierge.facebook_feed import fetch_facebook_posts
 from backend.apps.concierge.concierge_gpt import concierge_gpt_response # Make sure this exists
 
 from backend.apps.concierge.whitesands_scraper import scrape_whitesands_raw, parse_whitesands_content
@@ -65,8 +65,14 @@ async def handle_concierge(req: ConciergeQuery):
         response = "\n".join(val) if isinstance(val, list) else val
 
     else:
-        # fallback if intent wasn't matched
-        response = concierge_gpt_response(req.message)
+        if intent == "events":
+            posts = fetch_facebook_posts()
+            fb_post = posts[0]["summary"] if posts else "No recent events found on our Facebook page."
+            response = concierge_gpt_response(
+                f"The guest asked: {req.message}\nLatest Facebook update: {fb_post}"
+            )
+        else:
+            response = concierge_gpt_response(req.message)
 
     # Add follow-up if we have a match
     follow_up = concierge_flow.get(intent, {}).get("follow_up")
