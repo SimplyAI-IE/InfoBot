@@ -27,7 +27,7 @@ async def concierge_response(req: ConciergeQuery):
     elif "wifi" in msg:
         wifi_info = knowledge['hotel']['wifi']
         return {
-            "response": f"The Wi-Fi details are:\n\n{wifi_info}"
+            "response": f"The Wi-Fi details are: {knowledge['hotel']['wifi']}"
         }
 
     elif "facebook" in msg:
