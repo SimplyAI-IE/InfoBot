@@ -12,3 +12,7 @@ __pycache__/
 
 # PDF outputs or generated reports
 *.pdf
+
+# Ignore cache contents, but keep the folder
+cache/*
+!cache/.gitkeep
