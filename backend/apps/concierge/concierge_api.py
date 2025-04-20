@@ -15,10 +15,8 @@ from backend.apps.concierge.whitesands_scraper import get_cached_whitesands_fact
 router = APIRouter()
 
 @router.get("/concierge/facts")
-def get_whitesands_facts():
-    raw = scrape_whitesands_raw()
-    structured = parse_whitesands_content(raw)
-    return {"facts": structured}
+def get_whitesands_facts(force: bool = False):
+    return {"facts": get_cached_whitesands_facts(force=force)}
 
 @router.get("/concierge/facts")
 def get_whitesands_facts():

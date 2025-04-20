@@ -1,21 +1,21 @@
-import openai
+from openai import OpenAI
+
+client = OpenAI()
 
 def concierge_gpt_response(message: str) -> str:
     system_prompt = (
-        "You are an intelligent, helpful hotel concierge. "
-        "Answer questions about hotel facilities, Wi-Fi, dining, local events, directions, and area info. "
-        "If a follow-up makes sense, include it in a polite tone."
+        "You are a structured hotel assistant..."
     )
 
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": message}
             ],
             temperature=0.7,
-            max_tokens=300
+            max_tokens=500
         )
         return response.choices[0].message.content.strip()
 
