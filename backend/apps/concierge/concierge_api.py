@@ -7,12 +7,13 @@ from backend.apps.concierge.concierge_gpt import concierge_gpt_response # Make s
 
 from backend.apps.concierge.whitesands_scraper import scrape_whitesands_raw, parse_whitesands_content
 from backend.apps.concierge.whitesands_scraper import get_cached_whitesands_facts
-
-
+from backend.apps.concierge.intent_gpt import resolve_intent
 
 
 
 router = APIRouter()
+
+
 
 @router.get("/concierge/facts")
 def get_whitesands_facts(force: bool = False):
@@ -53,24 +54,27 @@ def match_intent(message: str):
 # --- Main Endpoint ---
 @router.post("/concierge")
 async def handle_concierge(req: ConciergeQuery):
-    intent = match_intent(req.message)
+    
+    intent = resolve_intent(req.message)
 
-    if intent:
-        # HOTEL INTENTS
-        if intent in knowledge["hotel"]:
-            response = knowledge["hotel"][intent]
+    if intent in knowledge["hotel"]:
+        response = knowledge["hotel"][intent]
 
-        # AREA INTENTS
-        elif intent in knowledge["area"]["ballyheigue"]:
-            val = knowledge["area"]["ballyheigue"][intent]
-            response = "\n".join(val) if isinstance(val, list) else val
+    elif intent in knowledge["area"]["ballyheigue"]:
+        val = knowledge["area"]["ballyheigue"][intent]
+        response = "\n".join(val) if isinstance(val, list) else val
 
-        # Add follow-up if applicable
-        follow_up = concierge_flow.get(intent, {}).get("follow_up")
-        if follow_up:
-            response += f" {follow_up}"
+    else:
+        # fallback if intent wasn't matched
+        response = concierge_gpt_response(req.message)
 
-        return {"response": response}
+    # Add follow-up if we have a match
+    follow_up = concierge_flow.get(intent, {}).get("follow_up")
+    if follow_up:
+        response += f" {follow_up}"
+
+    return {"response": response}
+
 
     # GPT Fallback
     gpt_reply = concierge_gpt_response(req.message)
