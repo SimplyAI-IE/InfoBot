@@ -31,9 +31,10 @@ def scrape_whitesands_raw() -> str:
             soup = BeautifulSoup(response.text, "html.parser")
             page_text = "\n".join(
                 el.get_text(strip=True)
-                for el in soup.find_all(["p", "h1", "h2", "h3", "h4", "h5", "h6"])
+                for el in soup.find_all(["p", "h1", "h2", "h3", "h4", "h5", "h6", "li", "span"])
                 if el.get_text(strip=True)
             )
+
             if page_text:
                 all_text.append(page_text)
             visited.add(url)
