@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from .models import UserProfile, ChatHistory
-from datetime import datetime
+from datetime import datetime, timezone
 
 class SessionRepository:
     def __init__(self, db_session: Session):
@@ -38,6 +38,6 @@ class SessionRepository:
         return [{"role": r.role, "content": r.content, "timestamp": r.timestamp.isoformat()} for r in reversed(records)]
 
     def add_chat_message(self, user_id: str, role: str, content: str):
-        entry = ChatHistory(user_id=user_id, role=role, content=content, timestamp=datetime.utcnow())
+        entry = ChatHistory(user_id=user_id, role=role, content=content, timestamp=datetime.now(timezone.utc))
         self.db.add(entry)
         self.db.commit()

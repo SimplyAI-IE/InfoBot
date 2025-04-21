@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+from backend.memory import MemoryManager
 from backend.main import app  # Make sure this points to your FastAPI app
 
 client = TestClient(app)

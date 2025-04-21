@@ -9,7 +9,7 @@ from pydantic import BaseModel
 import json
 from dotenv import load_dotenv
 from gpt_engine import get_gpt_response
-from memory import MemoryManager
+from backend.memory import MemoryManager
 from models import init_db, User, SessionLocal, ChatHistory
 from fastapi.responses import StreamingResponse, JSONResponse
 from weasyprint import HTML

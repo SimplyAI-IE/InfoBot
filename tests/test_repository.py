@@ -13,14 +13,14 @@ def test_db():
     Base.metadata.drop_all(bind=engine)
 
 def test_user_profile_roundtrip(test_db):
-    session = test_db()
+    session = test_db  # ✅
     repo = SessionRepository(session)
     repo.upsert_user_profile("abc123", {"pending_action": "init"})
     profile = repo.get_user_profile("abc123")
     assert profile.pending_action == "init"
 
 def test_chat_history_ordering(test_db):
-    session = test_db()
+    session = test_db  # ✅
     repo = SessionRepository(session)
     uid = "user_x"
     repo.add_chat_message(uid, "user", "Hi")
