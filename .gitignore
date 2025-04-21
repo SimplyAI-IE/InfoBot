@@ -18,6 +18,7 @@ cache/*
 !cache/.gitkeep
 
 # OCR + menu image data
+ocr_cache/* !ocr_cache/.gitkeep
 backend/apps/concierge/readImages/*
 !backend/apps/concierge/readImages/.gitkeep
 
