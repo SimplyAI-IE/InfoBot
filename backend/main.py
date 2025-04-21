@@ -1,34 +1,33 @@
-# --- main.py ---
 import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+import json
+import logging
+import importlib
+from typing import Optional, Dict, Any
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse, JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
+
 from pydantic import BaseModel
-import json
+from uuid import uuid4
 from dotenv import load_dotenv
-from gpt_engine import get_gpt_response
-from backend.memory import MemoryManager
-from models import init_db, User, SessionLocal, ChatHistory
-from fastapi.responses import StreamingResponse, JSONResponse
 from weasyprint import HTML
 from io import BytesIO
-import logging
-import importlib
-from typing import Optional
-from uuid import uuid4
+from typing import Union
+
+from gpt_engine import get_gpt_response
+from backend.memory import MemoryManager
+from backend.models import init_db, User, SessionLocal, ChatHistory
+from backend.logging_config import setup_logging
 from backend.apps.base_app import BaseApp
 from backend.apps.pension_guru.flow_engine import PensionFlow
-from backend.logging_config import setup_logging
+from backend.apps.concierge.concierge_api import router as concierge_router
+
 setup_logging()
 
-
-os.environ["G_MESSAGES_DEBUG"] = ""
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-load_dotenv()
 app = FastAPI()
 
 app.add_middleware(
@@ -43,6 +42,9 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
+os.environ["G_MESSAGES_DEBUG"] = ""
+load_dotenv()
+
 logger.info("Initializing database...")
 init_db()
 logger.info("Database initialized.")
@@ -54,15 +56,15 @@ class ChatRequest(BaseModel):
     user_id: Optional[str] = None
     message: str
     tone: str = ""
-
-app_id = os.getenv("ACTIVE_APP")
+app_id: Optional[str] = os.getenv("ACTIVE_APP")
 if not app_id:
     raise RuntimeError("ACTIVE_APP environment variable not set.")
-config = json.load(open(f"backend/apps/{app_id}/config.json"))
+
+config: Dict[str, Any] = json.load(open(f"backend/apps/{app_id}/config.json"))
 
 try:
     module = importlib.import_module(f"backend.apps.{app_id}.extract")
-    class_name = config.get("class_name", "PensionGuruApp")
+    class_name: str = config.get("class_name", "PensionGuruApp")
     extract_class = getattr(module, class_name)
     extract_instance: BaseApp = extract_class()
 except (ImportError, AttributeError, FileNotFoundError) as e:
@@ -71,74 +73,69 @@ except (ImportError, AttributeError, FileNotFoundError) as e:
 
 if not isinstance(extract_instance, BaseApp):
     raise TypeError(f"{app_id} extract module's class '{class_name}' does not implement required BaseApp interface.")
-logger.info(f"✅ Loaded app: {app_id} using class {class_name}")
 
-from backend.apps.concierge.concierge_api import router as concierge_router
+logger.info(f"✅ Loaded app: {app_id} using class {class_name}")
 app.include_router(concierge_router)
 
 @app.post("/chat")
-async def chat(req: ChatRequest, request: Request):
-    user_id = req.user_id or f"anon_{uuid4().hex[:10]}"
-    user_message = req.message.strip()
-    user_message_lower = user_message.lower()
-    tone = req.tone or config.get("tone_instruction_default", "adult")
+async def chat(req: ChatRequest, request: Request) -> Union[dict[str, str], JSONResponse]:
+    user_id: str = req.user_id or f"anon_{uuid4().hex[:10]}"
+    user_message: str = req.message.strip()
+    tone: str = req.tone or config.get("tone_instruction_default", "adult")
 
     logger.info(f"--- New Chat Request --- User: {user_id}, Tone: {tone}, Message: '{user_message}'")
 
     if user_message == "__INIT__":
         profile = memory.get_user_profile(user_id)
         flow = PensionFlow(profile, user_id)
-        scripted_response = flow.step()
+        scripted = flow.step()
+        if scripted:
+            memory.save_chat_message(user_id, 'assistant', scripted)
+            return {"response": scripted, "user_id": user_id}
 
-        if scripted_response:
-            memory.save_chat_message(user_id, 'assistant', scripted_response)
-            return {"response": scripted_response, "user_id": user_id}
-        else:
-            reply = get_gpt_response("__INIT__", user_id, tone=tone)
-            memory.save_chat_message(user_id, 'assistant', reply)
-            return {"response": reply, "user_id": user_id}
+        reply = get_gpt_response("__INIT__", user_id, tone=tone)
+        memory.save_chat_message(user_id, 'assistant', reply)
+        return {"response": reply, "user_id": user_id}
 
     try:
         profile = extract_instance.extract_user_data(user_id, user_message)
     except Exception as e:
-        logger.error(f"Error during data extraction for user {user_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Error processing your message data.")
+        logger.error(f"Data extraction error for {user_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Extraction failed")
 
     block_msg = extract_instance.block_response(user_message, profile)
     if block_msg:
-        memory.save_chat_message(user_id, 'user', user_message)
-        memory.save_chat_message(user_id, 'assistant', block_msg)
+        memory.save_chat_message(user_id, "user", user_message)
+        memory.save_chat_message(user_id, "assistant", block_msg)
         return {"response": block_msg, "user_id": user_id}
 
     history = memory.get_chat_history(user_id, limit=2)
-    if extract_instance.wants_tips(profile, user_message_lower, history):
+    if extract_instance.wants_tips(profile, user_message.lower(), history):
         reply = extract_instance.tips_reply()
-        memory.save_chat_message(user_id, 'user', user_message)
-        memory.save_chat_message(user_id, 'assistant', reply)
+        memory.save_chat_message(user_id, "user", user_message)
+        memory.save_chat_message(user_id, "assistant", reply)
         memory.save_user_profile(user_id, {"pending_action": None})
         return {"response": reply, "user_id": user_id}
 
     flow = PensionFlow(profile, user_id)
     scripted_response = flow.step()
-
     if scripted_response:
-        memory.save_chat_message(user_id, 'user', user_message)
-        memory.save_chat_message(user_id, 'assistant', scripted_response)
+        memory.save_chat_message(user_id, "user", user_message)
+        memory.save_chat_message(user_id, "assistant", scripted_response)
         return {"response": scripted_response, "user_id": user_id}
 
-    current_step = getattr(profile, "pending_step", None)
-    if current_step is None:
-        calculation_reply = extract_instance.get_pension_calculation_reply(user_id)
-        if calculation_reply:
-            memory.save_chat_message(user_id, 'user', user_message)
-            memory.save_chat_message(user_id, 'assistant', calculation_reply)
-            return {"response": calculation_reply, "user_id": user_id}
+    if getattr(profile, "pending_step", None) is None:
+        calc = extract_instance.get_pension_calculation_reply(user_id)
+        if calc:
+            memory.save_chat_message(user_id, "user", user_message)
+            memory.save_chat_message(user_id, "assistant", calc)
+            return {"response": calc, "user_id": user_id}
 
     try:
         reply = get_gpt_response(user_message, user_id, tone=tone)
-        memory.save_chat_message(user_id, 'user', user_message)
+        memory.save_chat_message(user_id, "user", user_message)
         if reply:
-            memory.save_chat_message(user_id, 'assistant', reply)
+            memory.save_chat_message(user_id, "assistant", reply)
 
             if extract_instance.should_offer_tips(reply):
                 memory.save_user_profile(user_id, {"pending_action": "offer_tips"})
@@ -147,18 +144,18 @@ async def chat(req: ChatRequest, request: Request):
 
         return {"response": reply or "...", "user_id": user_id}
     except Exception as e:
-        logger.error(f"Error during GPT flow for user_id: {user_id}: {e}", exc_info=True)
+        logger.error(f"GPT error for {user_id}: {e}", exc_info=True)
         return JSONResponse(
             status_code=500,
-            content={"response": "I'm sorry, I encountered a technical issue. Please try rephrasing or wait a moment.", "user_id": user_id}
+            content={"response": "I'm sorry, something broke.", "user_id": user_id}
         )
 @app.post("/auth/google")
-async def auth_google(user_data: dict):
+async def auth_google(user_data: Dict[str, Any]) -> Dict[str, str]:
     if not user_data or "sub" not in user_data:
         logger.error("Invalid user data received in /auth/google")
         raise HTTPException(status_code=400, detail="Invalid user data received")
 
-    user_id = user_data["sub"]
+    user_id: str = user_data["sub"]
     logger.info(f"Processing Google auth for user_id: {user_id}")
     db = SessionLocal()
     try:
@@ -170,7 +167,7 @@ async def auth_google(user_data: dict):
             db.commit()
     except Exception as e:
         db.rollback()
-        logger.error(f"Database error during auth for user_id {user_id}: {e}", exc_info=True)
+        logger.error(f"Database error during auth for {user_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Database operation failed")
     finally:
         db.close()
@@ -179,7 +176,7 @@ async def auth_google(user_data: dict):
 
 
 @app.get("/export-pdf")
-async def export_pdf(user_id: str):
+async def export_pdf(user_id: str) -> StreamingResponse:
     profile = memory.get_user_profile(user_id)
     if not profile:
         raise HTTPException(status_code=404, detail="No profile found for PDF export.")
@@ -195,7 +192,7 @@ async def export_pdf(user_id: str):
     finally:
         db.close()
 
-    profile_fields = config.get("profile_fields", [])
+    profile_fields: list[str] = config.get("profile_fields", [])
     profile_text = f"<h1>{config.get('pdf_title', 'Assistant Summary')}</h1><h2>User Info</h2><ul>"
     for field in profile_fields:
         label = field.replace("_", " ").title()
@@ -207,7 +204,7 @@ async def export_pdf(user_id: str):
     if messages:
         for m in messages:
             role = "You" if m.role == "user" else config.get("name", "Assistant")
-            content = getattr(m, 'content', '') or ''
+            content = getattr(m, "content", "") or ""
             content_escaped = content.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
             chat_log += f"<li><strong>{role}:</strong> {content_escaped}</li>"
     else:
@@ -229,9 +226,9 @@ async def export_pdf(user_id: str):
 
 
 @app.post("/chat/forget")
-async def forget_chat_history(request: Request):
-    data = await request.json()
-    user_id = data.get("user_id")
+async def forget_chat_history(request: Request) -> Dict[str, str]:
+    data: Dict[str, Any] = await request.json()
+    user_id: Optional[str] = data.get("user_id")
     if not user_id:
         raise HTTPException(status_code=400, detail="Missing user_id")
 
@@ -240,36 +237,34 @@ async def forget_chat_history(request: Request):
     try:
         deleted_chats = db.query(ChatHistory).filter(ChatHistory.user_id == user_id).delete(synchronize_session=False)
         logger.info(f"Deleted {deleted_chats} chat messages for user {user_id}")
+
         deleted_profile = memory.repo.delete_user_profile(user_id)
         logger.info(f"Deleted profile entry for user {user_id}: {deleted_profile}")
+
         db.commit()
     except Exception as e:
         db.rollback()
-        logger.error(f"Error deleting data for user {user_id}: {e}", exc_info=True)
+        logger.error(f"Error deleting data for {user_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to clear history")
     finally:
         db.close()
 
     return {"status": "ok", "message": "Chat history and profile cleared."}
-
-
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-
-static_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../public"))
+# Static file mount setup
+static_dir: str = os.path.abspath(os.path.join(os.path.dirname(__file__), "../public"))
 
 if os.path.isdir(static_dir):
     logger.info(f"Serving static files from: {static_dir}")
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 @app.get("/")
-async def serve_index():
-    file_path = os.path.join(static_dir, "index.html")
+async def serve_index() -> FileResponse:
+    file_path: str = os.path.join(static_dir, "index.html")
     if os.path.exists(file_path):
         return FileResponse(file_path)
     else:
         raise HTTPException(status_code=404, detail="Frontend not found")
 
 @app.get("/healthz")
-async def healthz():
+async def healthz() -> Dict[str, str]:
     return {"status": "ok"}

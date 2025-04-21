@@ -20,4 +20,5 @@ def resolve_intent(message: str) -> str:
         max_tokens=10
     )
 
-    return response.choices[0].message.content.strip().lower()
+    content = response.choices[0].message.content
+    return content.strip().lower() if content else "unknown"

@@ -3,7 +3,7 @@ from backend.memory import MemoryManager
 from backend.models import SessionLocal
 from backend.apps.pension_guru.extract_user_data import extract_user_data  # ✅ corrected import
 
-def interactive_test():
+def interactive_test() -> None:
     user_id = "debug123"
     tone = "14"
 

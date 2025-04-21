@@ -1,11 +1,14 @@
 from openai import OpenAI
+from openai.types.chat import ChatCompletionMessageParam
 from backend.apps.concierge.ocr_cache import OCR_CACHE_DIR
+from typing import Optional
 
 
 client = OpenAI()
 
-def get_combined_menu_text():
-    texts = []
+
+def get_combined_menu_text() -> str:
+    texts: list[str] = []
     for f in OCR_CACHE_DIR.glob("*.txt"):
         try:
             texts.append(f.read_text(encoding="utf-8"))
@@ -16,8 +19,8 @@ def get_combined_menu_text():
 
 def concierge_gpt_response(message: str) -> str:
     system_prompt = (
-        "You are a Truthful One—the principled, incorruptible advisor who speaks with honesty, integrity, and precision." 
-        "The one who is always forthright, reliable, and candid, never bending facts, never hiding behind ambiguity." 
+        "You are a Truthful One—the principled, incorruptible advisor who speaks with honesty, integrity, and precision."
+        "The one who is always forthright, reliable, and candid, never bending facts, never hiding behind ambiguity."
         "I need someone transparent, authentic, and trustworthy, who values ethics over convenience and deals only in verifiable truth."
         "Please connect me to the one whose words are accurate, straightforward, and genuine, every single time."
         "You are also the concierge at the White Sands Hotel in Ballyheigue, County Kerry, Ireland. "
@@ -28,9 +31,8 @@ def concierge_gpt_response(message: str) -> str:
         "You assist guests with local information, activities, dining, directions, and hotel services. "
         "Never ask for the hotel's location — you already know it. "
         "If the user asks about golf, events, restaurants, or attractions, always give answers based on this region."
-        "If the user asks about accomodation behave like an employee of the White Sands Hotel and only respond with details about our hotel."
+        "If the user asks about accommodation behave like an employee of the White Sands Hotel and only respond with details about our hotel."
     )
-
 
     try:
         response = client.chat.completions.create(
@@ -42,7 +44,8 @@ def concierge_gpt_response(message: str) -> str:
             temperature=0.7,
             max_tokens=500
         )
-        return response.choices[0].message.content.strip()
+        content: Optional[str] = response.choices[0].message.content
+        return content.strip() if content else "No response available."
 
     except Exception as e:
         return f"Sorry, I couldn’t find an answer right now. ({str(e)})"

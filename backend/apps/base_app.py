@@ -1,37 +1,44 @@
 from abc import ABC, abstractmethod
+from typing import Any, Optional, Union
 
 class BaseApp(ABC):
-    @abstractmethod
-    def extract_user_data(self, user_id: str, msg: str) -> None:
-        pass
 
     @abstractmethod
-    def block_response(self, msg: str, profile: dict) -> str | None:
-        pass
+    def extract_user_data(self, user_id: str, msg: str) -> dict[str, Any]:
+        ...
 
     @abstractmethod
-    def wants_tips(self, profile: dict, msg: str, history: list) -> bool:
-        pass
+    def block_response(self, user_input: str, profile: Optional[dict[str, Any]]) -> Optional[str]:
+        ...
 
     @abstractmethod
     def tips_reply(self) -> str:
-        pass
+        ...
 
     @abstractmethod
-    def should_offer_tips(self, response: str) -> bool:
-        pass
+    def should_offer_tips(self, reply: str) -> bool:
+        ...
 
     @abstractmethod
-    def render_profile_field(self, field: str, profile: dict) -> str:
-        pass
+    def wants_tips(
+        self,
+        profile: Optional[dict[str, Any]],
+        msg: str,
+        history: list[dict[str, str]]
+    ) -> bool:
+        ...
 
     @abstractmethod
-    def format_user_context(self, profile: dict) -> str:
-        pass
+    def format_user_context(self, profile: Optional[dict[str, Any]]) -> str:
+        ...
 
-    def pre_prompt(self, profile, user_id: str) -> str | None:
-        """
-        Optionally return a scripted prompt before GPT response generation.
-        This allows structured flows before GPT takes over.
-        """
+    @abstractmethod
+    def render_profile_field(self, field: str, profile: Optional[dict[str, Any]]) -> str:
+        ...
+
+    @abstractmethod
+    def get_pension_calculation_reply(self, user_id: str) -> str:
+        ...
+
+    def pre_prompt(self, profile: Optional[dict[str, Any]], user_id: str) -> Optional[str]:
         return None

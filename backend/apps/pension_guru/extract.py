@@ -6,6 +6,8 @@ from backend.apps.concierge.startup import preload_concierge_assets
 from backend.apps.base_app import BaseApp
 from backend.models import SessionLocal
 from backend.memory import MemoryManager
+from typing import Optional, Any
+
 from .flow_engine import PensionFlow
 from .extract_user_data import (
     extract_age, extract_income, extract_retirement_age,
@@ -14,47 +16,42 @@ from .extract_user_data import (
 from .pension_calculator import calculate_pension
 
 class ConciergeApp(BaseApp):
-    def startup(self):
+    def startup(self) -> None:
         preload_concierge_assets()
 
+
 class PensionGuruApp(BaseApp):
-    def extract_user_data(self, user_id: str, msg: str):
+    def extract_user_data(self, user_id: str, msg: str) -> dict[str, Any]:
+
         msg_lower = msg.lower()
         db = SessionLocal()
         memory = MemoryManager(db)
         try:
             profile = memory.get_user_profile(user_id)
-
-            print(f"🛠 [StrictExtract] extract_user_data for {user_id} → '{msg}'")
-
             flow = PensionFlow(profile, user_id)
             current_step = flow.current_step_name
 
             if current_step == "step_1_welcome_intro":
                 region = extract_region(msg_lower)
                 if region in ["Ireland", "UK"]:
-                    print(f"📌 Region: {region}")
                     memory.save_user_profile(user_id, {"region": region})
                     profile = memory.get_user_profile(user_id)
 
             elif current_step == "step_ie_ask_prsi":
                 prsi_years = extract_prsi_years(msg_lower)
                 if prsi_years is not None:
-                    print(f"📌 PRSI years: {prsi_years}")
                     memory.save_user_profile(user_id, {"prsi_years": prsi_years})
                     profile = memory.get_user_profile(user_id)
 
             elif current_step == "step_ie_ask_age":
                 age = extract_age(msg_lower)
                 if age is not None:
-                    print(f"📌 Age: {age}")
                     memory.save_user_profile(user_id, {"age": age})
                     profile = memory.get_user_profile(user_id)
 
             elif current_step == "step_ie_ask_ret_age":
                 ret_age = extract_retirement_age(msg_lower)
                 if ret_age is not None:
-                    print(f"📌 Retirement Age: {ret_age}")
                     memory.save_user_profile(user_id, {"retirement_age": ret_age})
                     profile = memory.get_user_profile(user_id)
 
@@ -63,15 +60,14 @@ class PensionGuruApp(BaseApp):
             current_step = flow.current_step_name
             node = flow.flow.get(current_step, {})
             expected_field = node.get("expect_field")
+
             profile = memory.get_user_profile(user_id)
             if expected_field and getattr(profile, expected_field, None):
                 next_step = node.get("next_step")
                 if next_step:
-                    print(f"➡️ Auto-advancing to step: {next_step}")
                     memory.save_user_profile(user_id, {"pending_step": next_step})
 
-            return memory.get_user_profile(user_id)
-
+            return memory.get_user_profile(user_id).__dict__ if memory.get_user_profile(user_id) else {}
         finally:
             db.close()
 
@@ -80,12 +76,13 @@ class PensionGuruApp(BaseApp):
         memory = MemoryManager(db)
         try:
             profile = memory.get_user_profile(user_id)
-            get = profile.get if isinstance(profile, dict) else lambda k: getattr(profile, k, None)
+            if not profile:
+                return "I'm missing your profile. Please re-enter your information."
 
-            region = (get("region") or "").lower()
-            prsi_years = get("prsi_years")
-            age = get("age")
-            retirement_age = get("retirement_age")
+            region = getattr(profile, "region", "").lower()
+            prsi_years = getattr(profile, "prsi_years", None)
+            age = getattr(profile, "age", None)
+            retirement_age = getattr(profile, "retirement_age", None)
 
             if not (region and prsi_years and age and retirement_age):
                 return "I’m missing some details to calculate your pension. Can you confirm your PRSI years, age, and planned retirement age?"
@@ -108,20 +105,25 @@ class PensionGuruApp(BaseApp):
         finally:
             db.close()
 
-    def block_response(self, user_input, profile):
+    def block_response(self, user_input: str, profile: Optional[dict[str, Any]]) -> Optional[str]:
         return None
 
-    def tips_reply(self):
+    def tips_reply(self) -> str:
         return "Tips feature not yet implemented."
 
-    def should_offer_tips(self, reply):
+    def should_offer_tips(self, reply: str) -> bool:
         return False
 
-    def wants_tips(self, profile, msg, history):
+    def wants_tips(
+        self,
+        profile: Optional[dict[str, Any]],
+        msg: str,
+        history: list[dict[str, str]]
+    ) -> bool:
         return False
 
-    def format_user_context(self, profile):
+    def format_user_context(self, profile: Optional[dict[str, Any]]) -> str:
         return "User profile summary not available."
 
-    def render_profile_field(self, field, profile):
+    def render_profile_field(self, field: str, profile: Optional[dict[str, Any]]) -> str:
         return "—"

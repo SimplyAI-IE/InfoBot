@@ -1,11 +1,13 @@
 from pathlib import Path
 from PIL import Image
 import pytesseract
+from pathlib import Path
+from typing import Any
 
 OCR_CACHE_DIR = Path(__file__).resolve().parent / "ocr_cache"
 OCR_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
-def bulk_process_directory(image_dir: Path):
+def bulk_process_directory(image_dir: Path) -> None:
     for image_path in sorted(image_dir.glob("*.jpg")):
         _ = get_cached_ocr_text(image_path)
 
