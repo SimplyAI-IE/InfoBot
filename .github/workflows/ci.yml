@@ -34,6 +34,8 @@ jobs:
     - name: Set environment variables
       run: |
         echo "ACTIVE_APP=pension_guru" >> $GITHUB_ENV
+        echo "OPENAI_API_KEY=fake-ci-key" >> $GITHUB_ENV
+
     
     - name: Run pytest
       continue-on-error: false
