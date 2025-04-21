@@ -20,6 +20,9 @@ from typing import Optional
 from uuid import uuid4
 from backend.apps.base_app import BaseApp
 from backend.apps.pension_guru.flow_engine import PensionFlow
+from backend.logging_config import setup_logging
+setup_logging()
+
 
 os.environ["G_MESSAGES_DEBUG"] = ""
 logging.basicConfig(level=logging.INFO)
