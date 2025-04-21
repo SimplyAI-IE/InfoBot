@@ -17,7 +17,7 @@ from weasyprint import HTML
 from io import BytesIO
 from typing import Union
 
-from gpt_engine import get_gpt_response
+from backend.gpt_engine import get_gpt_response  # ✅
 from backend.memory import MemoryManager
 from backend.models import init_db, User, SessionLocal, ChatHistory
 from backend.logging_config import setup_logging
