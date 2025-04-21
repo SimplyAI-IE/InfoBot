@@ -32,12 +32,23 @@ jobs:
         echo "PYTHONPATH=$PYTHONPATH"
 
     - name: Run pytest
+      continue-on-error: false
       run: |
+        echo "🧪 Running tests..."
         PYTHONPATH=. pytest --maxfail=1 --disable-warnings
+      
+    - name: Print working directory and files
+      run: |
+        pwd
+        ls -la
+      
 
     - name: Run mypy
+      continue-on-error: false
       run: |
-        PYTHONPATH=. mypy backend tests --pretty --show-error-codes || exit 1
+        echo "🔍 Running mypy..."
+        PYTHONPATH=. mypy backend tests --pretty --show-error-codes
+      
 
     - name: Run ruff (lint)
       run: |
