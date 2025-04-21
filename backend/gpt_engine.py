@@ -4,10 +4,10 @@ import os
 import json
 import logging
 import importlib
+from backend.models import SessionLocal, User
 from dotenv import load_dotenv
 from openai import OpenAI
-from memory import get_user_profile, get_chat_history
-from models import SessionLocal, User
+from backend.memory import MemoryManager
 from backend.apps.base_app import BaseApp  # ✅ updated import
 
 # Configure logging
@@ -60,7 +60,13 @@ CHAT_HISTORY_LIMIT = 5
 
 def get_gpt_response(user_input, user_id, tone=""):
     logger.info(f"get_gpt_response called for user_id: {user_id}")
-    profile = get_user_profile(user_id)
+    db = SessionLocal()
+    memory = MemoryManager(db)
+    try:
+        profile = memory.get_user_profile(user_id)
+        history = memory.get_chat_history(user_id, limit=CHAT_HISTORY_LIMIT)
+    finally:
+        db.close()
 
     # --- Removed initial pre_prompt call here ---
 
@@ -86,7 +92,7 @@ def get_gpt_response(user_input, user_id, tone=""):
 
     # Proceed with standard GPT call if not blocked and not handled by flow in main.py
     logger.info(f"Processing regular message for user_id: {user_id}")
-    history = get_chat_history(user_id, limit=CHAT_HISTORY_LIMIT)
+    history = memory.get_chat_history(user_id, limit=CHAT_HISTORY_LIMIT)
     logger.debug(f"Retrieved {len(history)} messages from history for user_id: {user_id}")
 
     summary = extract.format_user_context(profile)

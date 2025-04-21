@@ -1,28 +1,36 @@
 from backend.gpt_engine import get_gpt_response
-from memory import save_user_profile
-from apps.pension_guru.extract import extract_user_data  # ✅ correct
-import sys
-import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from backend.memory import MemoryManager
+from backend.models import SessionLocal
+from backend.apps.pension_guru.extract_user_data import extract_user_data  # ✅ corrected import
 
-from apps.pension_guru.extract import extract_user_data
+def interactive_test():
+    user_id = "debug123"
+    tone = "14"
 
-print("Running extraction test...")
+    db = SessionLocal()
+    memory = MemoryManager(db)
+    try:
+        print("🧪 Starting interactive pension assistant test.")
+        while True:
+            prompt = input("You: ")
+            if prompt.strip().lower() in ["exit", "quit"]:
+                break
 
-user_id = "test123"
-message = "I'm 42, based in Ireland, earning €55k, retiring at 65, low risk"
-updated = extract_user_data(user_id, message)
+            extract_user_data(user_id, prompt)
+            reply = get_gpt_response(prompt, user_id, tone=tone)
+            print("Pension Guru:", reply)
+    finally:
+        db.close()
 
-print("Profile updated:", updated)
+if __name__ == "__main__":
+    test_user = "test123"
+    test_msg = "I'm 42, based in Ireland, earning €55k, retiring at 65, low risk"
+    db = SessionLocal()
+    memory = MemoryManager(db)
+    try:
+        profile = extract_user_data(test_user, test_msg)
+        print("✅ Initial test profile updated:", profile)
+    finally:
+        db.close()
 
-test_user = "debug123"
-test_tone = "14"
-
-while True:
-    prompt = input("You: ")
-    if prompt.strip().lower() in ["exit", "quit"]:
-        break
-
-    extract_user_data(test_user, prompt)
-    reply = get_gpt_response(prompt, test_user, tone=test_tone)
-    print("Pension Guru:", reply)
+    interactive_test()

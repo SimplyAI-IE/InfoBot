@@ -1,6 +1,18 @@
 from openai import OpenAI
+from backend.apps.concierge.ocr_cache import OCR_CACHE_DIR
+
 
 client = OpenAI()
+
+def get_combined_menu_text():
+    texts = []
+    for f in OCR_CACHE_DIR.glob("*.txt"):
+        try:
+            texts.append(f.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+    return "\n\n".join(texts)
+
 
 def concierge_gpt_response(message: str) -> str:
     system_prompt = (
