@@ -9,7 +9,9 @@ client = TestClient(app)
 @patch("backend.apps.concierge.concierge_gpt.client.chat.completions.create")
 def test_wifi_response(mock_concierge: MagicMock, mock_intent: MagicMock) -> None:
     mock_intent.return_value.choices = [MagicMock(message=MagicMock(content="wifi"))]
-    mock_concierge.return_value.choices = [MagicMock(message=MagicMock(content="WiFi is free throughout the hotel."))]
+    mock_concierge.return_value.choices = [
+        MagicMock(message=MagicMock(content="The WiFi password is welcome123."))
+    ]
 
     response = client.post("/concierge", json={"message": "wifi"})
     assert response.status_code == 200
