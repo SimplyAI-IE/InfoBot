@@ -4,12 +4,12 @@ from unittest.mock import patch, MagicMock
 
 client = TestClient(app)
 
-
-def test_wifi_response() -> None:
+@patch("backend.apps.concierge.intent_gpt.client.chat.completions.create")
+def test_wifi_response(mock_intent: MagicMock) -> None:
+    mock_intent.return_value.choices = [MagicMock(message=MagicMock(content="wifi"))]
     response = client.post("/concierge", json={"message": "wifi"})
     assert response.status_code == 200
     assert "network" in response.json()["response"].lower()
-
 
 @patch("backend.apps.concierge.intent_gpt.client.chat.completions.create")
 @patch("backend.apps.concierge.concierge_gpt.client.chat.completions.create")
@@ -20,7 +20,6 @@ def test_activities_response(mock_concierge: MagicMock, mock_intent: MagicMock) 
     response = client.post("/concierge", json={"message": "activities"})
     assert response.status_code == 200
     assert "ballyheigue" in response.json()["response"].lower() or "walk" in response.json()["response"].lower()
-
 
 @patch("backend.apps.concierge.intent_gpt.client.chat.completions.create")
 @patch("backend.apps.concierge.concierge_gpt.client.chat.completions.create")
