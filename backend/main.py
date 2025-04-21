@@ -77,8 +77,10 @@ if not isinstance(extract_instance, BaseApp):
 logger.info(f"✅ Loaded app: {app_id} using class {class_name}")
 app.include_router(concierge_router)
 
-@app.post("/chat")
-async def chat(req: ChatRequest, request: Request) -> Union[dict[str, str], JSONResponse]:
+
+from fastapi.responses import JSONResponse
+@app.post("/chat", response_model=None)
+async def chat(req: ChatRequest, request: Request) -> JSONResponse:
     user_id: str = req.user_id or f"anon_{uuid4().hex[:10]}"
     user_message: str = req.message.strip()
     tone: str = req.tone or config.get("tone_instruction_default", "adult")
