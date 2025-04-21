@@ -79,8 +79,8 @@ app.include_router(concierge_router)
 
 
 from fastapi.responses import JSONResponse
-@app.post("/chat", response_model=None)
-async def chat(req: ChatRequest, request: Request) -> JSONResponse:
+@app.post("/chat")
+async def chat(req: ChatRequest, request: Request) -> dict[str, str]:
     user_id: str = req.user_id or f"anon_{uuid4().hex[:10]}"
     user_message: str = req.message.strip()
     tone: str = req.tone or config.get("tone_instruction_default", "adult")
@@ -147,10 +147,11 @@ async def chat(req: ChatRequest, request: Request) -> JSONResponse:
         return {"response": reply or "...", "user_id": user_id}
     except Exception as e:
         logger.error(f"GPT error for {user_id}: {e}", exc_info=True)
-        return JSONResponse(
+        raise HTTPException(
             status_code=500,
-            content={"response": "I'm sorry, something broke.", "user_id": user_id}
+            detail="I'm sorry, something broke. Please try again shortly.",
         )
+
 @app.post("/auth/google")
 async def auth_google(user_data: Dict[str, Any]) -> Dict[str, str]:
     if not user_data or "sub" not in user_data:
