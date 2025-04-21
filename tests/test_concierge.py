@@ -5,13 +5,10 @@ from unittest.mock import patch, MagicMock
 client = TestClient(app)
 
 
-@patch("backend.apps.concierge.intent_gpt.client.chat.completions.create")
-@patch("backend.apps.concierge.concierge_gpt.client.chat.completions.create")
 def test_wifi_response() -> None:
     response = client.post("/concierge", json={"message": "wifi"})
     assert response.status_code == 200
     assert "network" in response.json()["response"].lower()
-
 
 
 @patch("backend.apps.concierge.intent_gpt.client.chat.completions.create")
