@@ -25,14 +25,20 @@ jobs:
         pip install -r requirements.txt
         pip install pytest mypy ruff
 
-    - name: Run tests
+    - name: Debug environment
       run: |
-        PYTHONPATH=. pytest
+        which python
+        python --version
+        echo "PYTHONPATH=$PYTHONPATH"
+
+    - name: Run pytest
+      run: |
+        PYTHONPATH=. pytest --maxfail=1 --disable-warnings
 
     - name: Run mypy
       run: |
-        PYTHONPATH=. mypy backend tests
+        PYTHONPATH=. mypy backend tests --pretty --show-error-codes || exit 1
 
     - name: Run ruff (lint)
       run: |
-        ruff backend tests
+        ruff backend tests || exit 1
