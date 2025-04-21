@@ -3,6 +3,7 @@ from backend.main import app
 
 client = TestClient(app)
 
+
 def test_whitesands_facts_live_scrape():
     response = client.get("/concierge/facts")
     assert response.status_code == 200
@@ -13,6 +14,7 @@ def test_whitesands_facts_live_scrape():
     assert "check-in" in facts or "amenities" in facts or "contact" in facts
     assert len(facts) > 100  # sanity check for non-empty GPT output
 
+
 def test_full_whitesands_scrape_raw_content():
     from backend.apps.concierge.whitesands_scraper import scrape_whitesands_raw
 
@@ -21,10 +23,18 @@ def test_full_whitesands_scrape_raw_content():
     assert len(raw) > 1000  # Expecting multiple pages worth of content
 
     # Spot-check for expected hotel-related keywords
-    keywords = ["ballyheigue", "check-in", "restaurant", "facilities", "hotel", "dining"]
+    keywords = [
+        "ballyheigue",
+        "check-in",
+        "restaurant",
+        "facilities",
+        "hotel",
+        "dining",
+    ]
     matches = [word for word in keywords if word in raw.lower()]
 
     assert len(matches) >= 2, f"Expected to find at least 2 key phrases, got: {matches}"
+
 
 def test_scraped_content_includes_arnold_palmer():
     from backend.apps.concierge.whitesands_scraper import scrape_whitesands_raw
@@ -34,6 +44,6 @@ def test_scraped_content_includes_arnold_palmer():
     with open("scraped_whitesands.txt", "w", encoding="utf-8") as f:
         f.write(raw)
 
-    assert "arnold palmer" in raw.lower(), "'Arnold Palmer' not found in scraped content"
-
-
+    assert (
+        "arnold palmer" in raw.lower()
+    ), "'Arnold Palmer' not found in scraped content"

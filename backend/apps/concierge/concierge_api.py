@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Dict
 import yaml
 
 from backend.apps.concierge.facebook_feed import fetch_facebook_posts
@@ -11,22 +11,28 @@ from backend.apps.concierge.intent_gpt import resolve_intent
 
 router = APIRouter()
 
+
 # --- Models ---
 class ConciergeQuery(BaseModel):
     message: str
 
+
 # --- Load Knowledge Base ---
-with open(Path(__file__).parent / "concierge_knowledge.yaml", "r", encoding="utf-8") as f:
+with open(
+    Path(__file__).parent / "concierge_knowledge.yaml", "r", encoding="utf-8"
+) as f:
     knowledge = yaml.safe_load(f)
 
 # --- Load Follow-Up Flow ---
 with open(Path(__file__).parent / "concierge_flow.yaml", "r", encoding="utf-8") as f:
     concierge_flow = yaml.safe_load(f)["intents"]
 
+
 # --- Facts endpoint ---
 @router.get("/concierge/facts")
 def get_whitesands_facts(force: bool = False) -> Dict[str, str]:
     return {"facts": get_cached_whitesands_facts(force=force)}
+
 
 # --- Intent Matching (simple substring search) ---
 def match_intent(message: str) -> Optional[str]:
@@ -41,6 +47,7 @@ def match_intent(message: str) -> Optional[str]:
             return key
 
     return None
+
 
 # --- Main Endpoint ---
 @router.post("/concierge")
@@ -57,7 +64,11 @@ async def handle_concierge(req: ConciergeQuery) -> Dict[str, str]:
     else:
         if intent == "events":
             posts = fetch_facebook_posts()
-            fb_post = posts[0]["summary"] if posts else "No recent events found on our Facebook page."
+            fb_post = (
+                posts[0]["summary"]
+                if posts
+                else "No recent events found on our Facebook page."
+            )
             response = concierge_gpt_response(
                 f"The guest asked: {req.message}\nLatest Facebook update: {fb_post}"
             )

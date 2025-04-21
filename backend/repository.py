@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from backend.models import UserProfile, ChatHistory
 from datetime import datetime, timezone
 from typing import Optional, Any
-from typing import Any, Optional
+
 
 class SessionRepository:
     def __init__(self, db_session: Session):
@@ -25,7 +25,11 @@ class SessionRepository:
         self.db.commit()
 
     def delete_user_profile(self, user_id: str) -> int:
-        return self.db.query(UserProfile).filter(UserProfile.user_id == user_id).delete(synchronize_session=False)
+        return (
+            self.db.query(UserProfile)
+            .filter(UserProfile.user_id == user_id)
+            .delete(synchronize_session=False)
+        )
 
     # --- ChatHistory ---
     def get_chat_history(self, user_id: str, limit: int = 10) -> list[dict[str, Any]]:
@@ -37,11 +41,7 @@ class SessionRepository:
             .all()
         )
         return [
-            {
-                "role": r.role,
-                "content": r.content,
-                "timestamp": r.timestamp.isoformat()
-            }
+            {"role": r.role, "content": r.content, "timestamp": r.timestamp.isoformat()}
             for r in reversed(records)
         ]
 
@@ -60,7 +60,7 @@ class SessionRepository:
             user_id=user_id,
             role=role,
             content=content,
-            timestamp=datetime.now(timezone.utc)
+            timestamp=datetime.now(timezone.utc),
         )
         self.db.add(entry)
         self.db.commit()

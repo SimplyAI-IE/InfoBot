@@ -1,12 +1,12 @@
 import sys
 import os
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import os
 import json
 from importlib import import_module
 from dotenv import load_dotenv
-
 
 
 # Load .env

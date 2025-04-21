@@ -4,6 +4,7 @@ from sqlalchemy.orm import sessionmaker
 from backend.models import Base
 from backend.repository import SessionRepository
 
+
 @pytest.fixture(scope="function")
 def test_db():
     engine = create_engine("sqlite:///:memory:")
@@ -12,12 +13,14 @@ def test_db():
     yield TestingSessionLocal()
     Base.metadata.drop_all(bind=engine)
 
+
 def test_user_profile_roundtrip(test_db):
     session = test_db  # ✅
     repo = SessionRepository(session)
     repo.upsert_user_profile("abc123", {"pending_action": "init"})
     profile = repo.get_user_profile("abc123")
     assert profile.pending_action == "init"
+
 
 def test_chat_history_ordering(test_db):
     session = test_db  # ✅

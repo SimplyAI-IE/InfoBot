@@ -2,6 +2,7 @@ from openai import OpenAI
 
 client = OpenAI()
 
+
 def resolve_intent(message: str) -> str:
     system_prompt = (
         "You are an intent classifier for a hotel concierge assistant. "
@@ -14,10 +15,10 @@ def resolve_intent(message: str) -> str:
         model="gpt-4",
         messages=[
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": message}
+            {"role": "user", "content": message},
         ],
         temperature=0,
-        max_tokens=10
+        max_tokens=10,
     )
 
     content = response.choices[0].message.content

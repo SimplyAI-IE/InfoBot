@@ -2,7 +2,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from backend.models import Base
-from backend.memory import MemoryManager
+
 
 @pytest.fixture(scope="function")
 def test_db():
@@ -12,4 +12,3 @@ def test_db():
     db = TestingSessionLocal()
     yield db
     db.close()
-

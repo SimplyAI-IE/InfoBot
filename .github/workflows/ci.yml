@@ -26,6 +26,10 @@ jobs:
         pip install pytest mypy ruff
         pip install types-requests types-PyYAML
 
+    - name: Install pre-commit
+      run: |
+        pip install pre-commit
+      
 
     - name: Debug environment
       run: |
@@ -61,3 +65,8 @@ jobs:
     - name: Run ruff (lint)
       run: |
         ruff check backend tests
+
+    - name: Run pre-commit checks
+      run: |
+        pre-commit run --all-files
+

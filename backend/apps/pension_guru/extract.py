@@ -1,6 +1,9 @@
 import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../backend")))
+
+sys.path.insert(
+    0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../backend"))
+)
 
 from backend.apps.concierge.startup import preload_concierge_assets
 from backend.apps.base_app import BaseApp
@@ -10,10 +13,13 @@ from typing import Optional, Any
 
 from .flow_engine import PensionFlow
 from .extract_user_data import (
-    extract_age, extract_income, extract_retirement_age,
-    extract_risk_profile, extract_region, extract_prsi_years
+    extract_age,
+    extract_retirement_age,
+    extract_region,
+    extract_prsi_years,
 )
 from .pension_calculator import calculate_pension
+
 
 class ConciergeApp(BaseApp):
     def startup(self) -> None:
@@ -67,7 +73,11 @@ class PensionGuruApp(BaseApp):
                 if next_step:
                     memory.save_user_profile(user_id, {"pending_step": next_step})
 
-            return memory.get_user_profile(user_id).__dict__ if memory.get_user_profile(user_id) else {}
+            return (
+                memory.get_user_profile(user_id).__dict__
+                if memory.get_user_profile(user_id)
+                else {}
+            )
         finally:
             db.close()
 
@@ -87,7 +97,9 @@ class PensionGuruApp(BaseApp):
             if not (region and prsi_years and age and retirement_age):
                 return "I’m missing some details to calculate your pension. Can you confirm your PRSI years, age, and planned retirement age?"
 
-            calc = calculate_pension(region, prsi_years, age=age, retirement_age=retirement_age)
+            calc = calculate_pension(
+                region, prsi_years, age=age, retirement_age=retirement_age
+            )
             if not calc:
                 return "I couldn’t run the pension estimate. Please check the details provided."
 
@@ -105,7 +117,9 @@ class PensionGuruApp(BaseApp):
         finally:
             db.close()
 
-    def block_response(self, user_input: str, profile: Optional[dict[str, Any]]) -> Optional[str]:
+    def block_response(
+        self, user_input: str, profile: Optional[dict[str, Any]]
+    ) -> Optional[str]:
         return None
 
     def tips_reply(self) -> str:
@@ -115,15 +129,14 @@ class PensionGuruApp(BaseApp):
         return False
 
     def wants_tips(
-        self,
-        profile: Optional[dict[str, Any]],
-        msg: str,
-        history: list[dict[str, str]]
+        self, profile: Optional[dict[str, Any]], msg: str, history: list[dict[str, str]]
     ) -> bool:
         return False
 
     def format_user_context(self, profile: Optional[dict[str, Any]]) -> str:
         return "User profile summary not available."
 
-    def render_profile_field(self, field: str, profile: Optional[dict[str, Any]]) -> str:
+    def render_profile_field(
+        self, field: str, profile: Optional[dict[str, Any]]
+    ) -> str:
         return "—"

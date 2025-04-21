@@ -1,5 +1,4 @@
 from openai import OpenAI
-from openai.types.chat import ChatCompletionMessageParam
 from backend.apps.concierge.ocr_cache import OCR_CACHE_DIR
 from typing import Optional
 
@@ -39,10 +38,10 @@ def concierge_gpt_response(message: str) -> str:
             model="gpt-4",
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": message}
+                {"role": "user", "content": message},
             ],
             temperature=0.7,
-            max_tokens=500
+            max_tokens=500,
         )
         content: Optional[str] = response.choices[0].message.content
         return content.strip() if content else "No response available."

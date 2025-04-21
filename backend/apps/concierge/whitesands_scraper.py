@@ -9,10 +9,13 @@ from typing import Set
 
 # --- Config ---
 BASE_URL: str = "https://www.whitesands.ie"
-CACHE_PATH = Path(__file__).resolve().parent.parent.parent / "cache" / "whitesands_facts.json"
+CACHE_PATH = (
+    Path(__file__).resolve().parent.parent.parent / "cache" / "whitesands_facts.json"
+)
 CACHE_TTL_SECONDS = 6 * 60 * 60  # 6 hours
 
 client = OpenAI()
+
 
 def scrape_whitesands_raw() -> str:
     visited: Set[str] = set()
@@ -32,7 +35,9 @@ def scrape_whitesands_raw() -> str:
             soup = BeautifulSoup(response.text, "html.parser")
             page_text = "\n".join(
                 el.get_text(strip=True)
-                for el in soup.find_all(["p", "h1", "h2", "h3", "h4", "h5", "h6", "li", "span"])
+                for el in soup.find_all(
+                    ["p", "h1", "h2", "h3", "h4", "h5", "h6", "li", "span"]
+                )
                 if el.get_text(strip=True)
             )
 
@@ -44,13 +49,17 @@ def scrape_whitesands_raw() -> str:
                 if isinstance(link, Tag) and link.has_attr("href"):
                     href = link["href"]
                     joined = urljoin(BASE_URL, str(href))
-                    if urlparse(joined).netloc == urlparse(BASE_URL).netloc and joined not in visited:
+                    if (
+                        urlparse(joined).netloc == urlparse(BASE_URL).netloc
+                        and joined not in visited
+                    ):
                         to_visit.append(str(joined))
 
         except Exception as e:
             print(f"Skipping {url}: {e}")
 
     return "\n".join(all_text)
+
 
 def parse_whitesands_content(raw_text: str) -> str:
     system_prompt = (
@@ -63,13 +72,18 @@ def parse_whitesands_content(raw_text: str) -> str:
         model="gpt-4",
         messages=[
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": raw_text}
+            {"role": "user", "content": raw_text},
         ],
         temperature=0.3,
-        max_tokens=800
+        max_tokens=800,
     )
 
-    return response.choices[0].message.content.strip() if response.choices[0].message.content else "No content returned."
+    return (
+        response.choices[0].message.content.strip()
+        if response.choices[0].message.content
+        else "No content returned."
+    )
+
 
 def get_cached_whitesands_facts(force: bool = False) -> str:
     if not force and CACHE_PATH.exists():

@@ -32,7 +32,7 @@ def extract_income(msg: str) -> Optional[int]:
     match = re.search(r"\b(?:€|£)?(\d{2,6})([kK]?)\b", msg.replace(",", ""))
     if match:
         val = int(match.group(1))
-        if match.group(2).lower() == 'k':
+        if match.group(2).lower() == "k":
             val *= 1000
         if 5_000 <= val <= 500_000:
             return val
@@ -78,7 +78,19 @@ def extract_region(msg: str) -> Optional[str]:
     elif "uk" in msg or "united kingdom" in msg:
         print("✅ Region matched: UK")
         return "UK"
-    elif any(c in msg for c in ["us", "usa", "america", "germany", "france", "canada", "india", "australia"]):
+    elif any(
+        c in msg
+        for c in [
+            "us",
+            "usa",
+            "america",
+            "germany",
+            "france",
+            "canada",
+            "india",
+            "australia",
+        ]
+    ):
         print("❌ Unsupported region")
         return "unsupported"
     print("❌ No region matched")
@@ -86,7 +98,9 @@ def extract_region(msg: str) -> Optional[str]:
 
 
 def extract_prsi_years(msg: str) -> Optional[int]:
-    match_keyword = re.search(r"(\d{1,2})\s+(?:years?|yrs?)\s+(?:of\s+)?(?:prsi|contributions?)", msg)
+    match_keyword = re.search(
+        r"(\d{1,2})\s+(?:years?|yrs?)\s+(?:of\s+)?(?:prsi|contributions?)", msg
+    )
     if match_keyword:
         years = int(match_keyword.group(1))
         if 0 <= years <= 60:

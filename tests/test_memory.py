@@ -1,8 +1,9 @@
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from backend.models import Base, UserProfile, ChatHistory
+from backend.models import Base
 from backend.memory import MemoryManager
+
 
 @pytest.fixture(scope="function")
 def test_db():
@@ -12,6 +13,7 @@ def test_db():
     yield TestingSessionLocal()
     Base.metadata.drop_all(bind=engine)
 
+
 def test_profile_upsert_and_get(test_db):
     memory = MemoryManager(test_db)
     user_id = "test_user"
@@ -19,6 +21,7 @@ def test_profile_upsert_and_get(test_db):
     profile = memory.get_user_profile(user_id)
     assert profile is not None
     assert profile.pending_action == "offer_tips"
+
 
 def test_chat_history_saving(test_db):
     memory = MemoryManager(test_db)

@@ -3,7 +3,7 @@ import os
 import json
 import logging
 import importlib
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 from backend.models import SessionLocal, User
 from backend.memory import MemoryManager
@@ -58,6 +58,7 @@ client = OpenAI(api_key=api_key)
 
 CHAT_HISTORY_LIMIT: int = 5
 
+
 def get_gpt_response(user_input: str, user_id: str, tone: str = "") -> str:
     logger.info(f"get_gpt_response called for user_id: {user_id}")
     db = SessionLocal()
@@ -95,25 +96,31 @@ def get_gpt_response(user_input: str, user_id: str, tone: str = "") -> str:
         "14": "Explain ideas like you're talking to a 14-year-old. Be clear and concrete, avoid jargon.",
         "adult": "Use plain English suitable for an average adult. Assume no special knowledge.",
         "pro": "Use financial terminology and industry language for a professional audience.",
-        "genius": "Use technical depth and precision appropriate for a professor. Do not simplify."
+        "genius": "Use technical depth and precision appropriate for a professor. Do not simplify.",
     }
     tone_instruction = tone_map.get(tone, "")
-    system_message = SYSTEM_PROMPT.replace("{{tone_instruction}}", tone_instruction) + "\n\n" + summary
+    system_message = (
+        SYSTEM_PROMPT.replace("{{tone_instruction}}", tone_instruction)
+        + "\n\n"
+        + summary
+    )
 
-    messages: list[ChatCompletionMessageParam] = [{"role": "system", "content": system_message}]
+    messages: list[ChatCompletionMessageParam] = [
+        {"role": "system", "content": system_message}
+    ]
     for msg in history:
         if msg["role"] in ("user", "assistant"):
             messages.append({"role": msg["role"], "content": msg["content"]})
         else:
-            logger.warning(f"Skipping invalid role: {msg['role']} for user_id: {user_id}")
+            logger.warning(
+                f"Skipping invalid role: {msg['role']} for user_id: {user_id}"
+            )
     messages.append({"role": "user", "content": user_input})
 
     try:
         logger.info(f"Calling OpenAI API for user_id: {user_id}...")
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=messages,
-            temperature=0.7
+            model="gpt-3.5-turbo", messages=messages, temperature=0.7
         )
         reply: Optional[str] = response.choices[0].message.content
         logger.info(f"OpenAI API call successful for user_id: {user_id}")

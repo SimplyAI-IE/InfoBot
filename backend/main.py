@@ -1,4 +1,3 @@
-import sys
 import os
 import json
 import logging
@@ -7,7 +6,7 @@ from typing import Optional, Dict, Any
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, JSONResponse, FileResponse
+from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from pydantic import BaseModel
@@ -15,7 +14,6 @@ from uuid import uuid4
 from dotenv import load_dotenv
 from weasyprint import HTML
 from io import BytesIO
-from typing import Union
 
 from backend.gpt_engine import get_gpt_response  # ✅
 from backend.memory import MemoryManager
@@ -35,11 +33,11 @@ app.add_middleware(
     allow_origins=[
         "https://infobot-h7cr.onrender.com",
         "http://localhost:5500",
-        "http://127.0.0.1:5500"
+        "http://127.0.0.1:5500",
     ],
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"]
+    allow_headers=["*"],
 )
 
 os.environ["G_MESSAGES_DEBUG"] = ""
@@ -52,10 +50,13 @@ logger.info("Database initialized.")
 db = SessionLocal()
 memory = MemoryManager(db)
 
+
 class ChatRequest(BaseModel):
     user_id: Optional[str] = None
     message: str
     tone: str = ""
+
+
 app_id: Optional[str] = os.getenv("ACTIVE_APP")
 if not app_id:
     raise RuntimeError("ACTIVE_APP environment variable not set.")
@@ -69,34 +70,39 @@ try:
     extract_instance: BaseApp = extract_class()
 except (ImportError, AttributeError, FileNotFoundError) as e:
     logger.error(f"Failed to load app '{app_id}': {e}", exc_info=True)
-    raise RuntimeError(f"Could not load application '{app_id}'. Check configuration and file paths.") from e
+    raise RuntimeError(
+        f"Could not load application '{app_id}'. Check configuration and file paths."
+    ) from e
 
 if not isinstance(extract_instance, BaseApp):
-    raise TypeError(f"{app_id} extract module's class '{class_name}' does not implement required BaseApp interface.")
+    raise TypeError(
+        f"{app_id} extract module's class '{class_name}' does not implement required BaseApp interface."
+    )
 
 logger.info(f"✅ Loaded app: {app_id} using class {class_name}")
 app.include_router(concierge_router)
 
 
-from fastapi.responses import JSONResponse
 @app.post("/chat")
 async def chat(req: ChatRequest, request: Request) -> dict[str, str]:
     user_id: str = req.user_id or f"anon_{uuid4().hex[:10]}"
     user_message: str = req.message.strip()
     tone: str = req.tone or config.get("tone_instruction_default", "adult")
 
-    logger.info(f"--- New Chat Request --- User: {user_id}, Tone: {tone}, Message: '{user_message}'")
+    logger.info(
+        f"--- New Chat Request --- User: {user_id}, Tone: {tone}, Message: '{user_message}'"
+    )
 
     if user_message == "__INIT__":
         profile = memory.get_user_profile(user_id)
         flow = PensionFlow(profile, user_id)
         scripted = flow.step()
         if scripted:
-            memory.save_chat_message(user_id, 'assistant', scripted)
+            memory.save_chat_message(user_id, "assistant", scripted)
             return {"response": scripted, "user_id": user_id}
 
         reply = get_gpt_response("__INIT__", user_id, tone=tone)
-        memory.save_chat_message(user_id, 'assistant', reply)
+        memory.save_chat_message(user_id, "assistant", reply)
         return {"response": reply, "user_id": user_id}
 
     try:
@@ -152,6 +158,7 @@ async def chat(req: ChatRequest, request: Request) -> dict[str, str]:
             detail="I'm sorry, something broke. Please try again shortly.",
         )
 
+
 @app.post("/auth/google")
 async def auth_google(user_data: Dict[str, Any]) -> Dict[str, str]:
     if not user_data or "sub" not in user_data:
@@ -164,8 +171,14 @@ async def auth_google(user_data: Dict[str, Any]) -> Dict[str, str]:
     try:
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
-            logger.info(f"New user detected, creating user and profile entry for user_id: {user_id}")
-            user = User(id=user_id, name=user_data.get("name", "Unknown User"), email=user_data.get("email"))
+            logger.info(
+                f"New user detected, creating user and profile entry for user_id: {user_id}"
+            )
+            user = User(
+                id=user_id,
+                name=user_data.get("name", "Unknown User"),
+                email=user_data.get("email"),
+            )
             db.add(user)
             db.commit()
     except Exception as e:
@@ -196,7 +209,9 @@ async def export_pdf(user_id: str) -> StreamingResponse:
         db.close()
 
     profile_fields: list[str] = config.get("profile_fields", [])
-    profile_text = f"<h1>{config.get('pdf_title', 'Assistant Summary')}</h1><h2>User Info</h2><ul>"
+    profile_text = (
+        f"<h1>{config.get('pdf_title', 'Assistant Summary')}</h1><h2>User Info</h2><ul>"
+    )
     for field in profile_fields:
         label = field.replace("_", " ").title()
         rendered = extract_instance.render_profile_field(field, profile)
@@ -208,7 +223,9 @@ async def export_pdf(user_id: str) -> StreamingResponse:
         for m in messages:
             role = "You" if m.role == "user" else config.get("name", "Assistant")
             content = getattr(m, "content", "") or ""
-            content_escaped = content.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            content_escaped = (
+                content.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            )
             chat_log += f"<li><strong>{role}:</strong> {content_escaped}</li>"
     else:
         chat_log += "<li>No chat history found.</li>"
@@ -223,9 +240,13 @@ async def export_pdf(user_id: str) -> StreamingResponse:
         logger.error(f"Error generating PDF for user {user_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to generate PDF report.")
 
-    return StreamingResponse(pdf_buffer, media_type="application/pdf", headers={
-        "Content-Disposition": f"attachment; filename={app_id}_report_{user_id}.pdf"
-    })
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename={app_id}_report_{user_id}.pdf"
+        },
+    )
 
 
 @app.post("/chat/forget")
@@ -238,7 +259,11 @@ async def forget_chat_history(request: Request) -> Dict[str, str]:
     logger.info(f"Received request to forget data for user {user_id}")
     db = SessionLocal()
     try:
-        deleted_chats = db.query(ChatHistory).filter(ChatHistory.user_id == user_id).delete(synchronize_session=False)
+        deleted_chats = (
+            db.query(ChatHistory)
+            .filter(ChatHistory.user_id == user_id)
+            .delete(synchronize_session=False)
+        )
         logger.info(f"Deleted {deleted_chats} chat messages for user {user_id}")
 
         deleted_profile = memory.repo.delete_user_profile(user_id)
@@ -253,12 +278,15 @@ async def forget_chat_history(request: Request) -> Dict[str, str]:
         db.close()
 
     return {"status": "ok", "message": "Chat history and profile cleared."}
+
+
 # Static file mount setup
 static_dir: str = os.path.abspath(os.path.join(os.path.dirname(__file__), "../public"))
 
 if os.path.isdir(static_dir):
     logger.info(f"Serving static files from: {static_dir}")
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
 
 @app.get("/")
 async def serve_index() -> FileResponse:
@@ -267,6 +295,7 @@ async def serve_index() -> FileResponse:
         return FileResponse(file_path)
     else:
         raise HTTPException(status_code=404, detail="Frontend not found")
+
 
 @app.get("/healthz")
 async def healthz() -> Dict[str, str]:

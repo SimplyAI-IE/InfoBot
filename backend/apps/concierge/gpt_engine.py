@@ -1,8 +1,8 @@
 from openai import OpenAI
-from openai.types.chat import ChatCompletionMessageParam
 from typing import Optional
 
 client = OpenAI()
+
 
 def concierge_gpt_response(message: str) -> str:
     system_prompt = (
@@ -16,10 +16,10 @@ def concierge_gpt_response(message: str) -> str:
             model="gpt-4",
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": message}
+                {"role": "user", "content": message},
             ],
             temperature=0.7,
-            max_tokens=300
+            max_tokens=300,
         )
 
         content: Optional[str] = response.choices[0].message.content

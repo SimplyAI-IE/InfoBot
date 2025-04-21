@@ -19,12 +19,14 @@ def fetch_facebook_posts(force: bool = False) -> List[Dict[str, str]]:
     posts = []
 
     for entry in feed.entries:
-        posts.append({
-            "title": entry.title,
-            "summary": entry.summary,
-            "published": entry.published,
-            "link": entry.link,
-        })
+        posts.append(
+            {
+                "title": entry.title,
+                "summary": entry.summary,
+                "published": entry.published,
+                "link": entry.link,
+            }
+        )
 
     with open(CACHE_PATH, "w", encoding="utf-8") as f:
         yaml.dump(posts, f, allow_unicode=True)
