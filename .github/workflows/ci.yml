@@ -60,4 +60,4 @@ jobs:
 
     - name: Run ruff (lint)
       run: |
-        ruff backend tests || exit 1
+        ruff check backend tests
