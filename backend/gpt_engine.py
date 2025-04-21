@@ -22,7 +22,9 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 # Load app module and config
-app_id: str = os.getenv("ACTIVE_APP", "")
+app_id = os.getenv("ACTIVE_APP")
+if not app_id:
+    raise RuntimeError("Missing ACTIVE_APP in .env")
 print(f"DEBUG: ACTIVE_APP loaded as: {app_id}")
 if not app_id:
     raise RuntimeError("Missing ACTIVE_APP in .env")

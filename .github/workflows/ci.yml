@@ -31,6 +31,10 @@ jobs:
         python --version
         echo "PYTHONPATH=$PYTHONPATH"
 
+    - name: Set environment variables
+      run: |
+        echo "ACTIVE_APP=pension_guru" >> $GITHUB_ENV
+    
     - name: Run pytest
       continue-on-error: false
       run: |
