@@ -1,27 +1,24 @@
-# Python
-__pycache__/
-*.py[cod]
-*.egg-info/
-*.log
+# build output
+dist/
+# generated types
+.astro/
 
-# Virtualenv
-.venv/
+# dependencies
+node_modules/
 
-# Environment variables
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+
+# environment variables
 .env
+.env.production
 
-# PDF outputs or generated reports
-*.pdf
+# macOS-specific files
+.DS_Store
 
-# Ignore cache contents, but keep the folder
-cache/*
-!cache/.gitkeep
-
-# OCR + menu image data
-ocr_cache/* !ocr_cache/.gitkeep
-backend/apps/concierge/readImages/*
-!backend/apps/concierge/readImages/.gitkeep
-
-
-backend/apps/concierge/ocr_cache/*
-!backend/apps/concierge/ocr_cache/.gitkeep
+# jetbrains setting folder
+.idea/
