@@ -22,5 +22,6 @@ ocr_cache/* !ocr_cache/.gitkeep
 backend/apps/concierge/readImages/*
 !backend/apps/concierge/readImages/.gitkeep
 
+
 backend/apps/concierge/ocr_cache/*
 !backend/apps/concierge/ocr_cache/.gitkeep

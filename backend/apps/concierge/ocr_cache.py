@@ -7,7 +7,7 @@ OCR_CACHE_DIR = Path(__file__).parent / "ocr_cache"
 
 
 def bulk_process_directory(input_dir: Path) -> None:
-    from .ocr_engine import ocr_image  # Assuming this exists
+    from backend.apps.concierge.ocr_engine import ocr_image
 
     OCR_CACHE_DIR.mkdir(exist_ok=True)
 
