@@ -1,7 +1,6 @@
 {
     "python.analysis.extraPaths": [
-      "./backend",
-      "./apps"
+      "./backend"
     ],
     "python.defaultInterpreterPath": "python",
     "python.linting.enabled": true,
