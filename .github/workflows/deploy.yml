@@ -24,5 +24,6 @@ jobs:
         host: ${{ secrets.A2_HOST }}
         username: ${{ secrets.A2_USER }}
         key: ${{ secrets.A2_SSH_KEY }}
+        port: ${{ secrets.A2_PORT }}
         source: "dist/*"
         target: ${{ secrets.A2_PATH }}
