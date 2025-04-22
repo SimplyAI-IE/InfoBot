@@ -14,3 +14,5 @@ services:
       - key: OPENAI_API_KEY
         sync: false
     autoDeploy: true
+    # Force commit to trigger Render build update
+
