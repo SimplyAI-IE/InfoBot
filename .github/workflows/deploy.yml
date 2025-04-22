@@ -27,3 +27,5 @@ jobs:
         port: ${{ secrets.A2_PORT }}
         source: "dist/*"
         target: ${{ secrets.A2_PATH }}
+        rm: true   # Clean remote folder before copying
+    
