@@ -152,3 +152,16 @@ Formatting: Black.
 Type Checking: Mypy.
 
 Pre-commit Hooks: Configured to run linting, formatting, and type checking on each commit.​
+
+## Domain & Hosting
+
+- **Domain Registrar**: [Blacknight](https://www.blacknight.com)
+  - DNS access: [cp.blacknighthosting.com](https://cp.blacknighthosting.com)
+- **Hosting Provider**: [A2 Hosting](https://www.a2hosting.com)
+  - Hosting panel: **cPanel**
+  - Files and site deployment: Managed via `public_html` directory
+
+## Deployment Strategy
+
+- Static builds (from Astro) should be uploaded to `public_html/test-ui` or a subdomain (e.g., `test.simplyai.ie`) for staging purposes.
+- Production deployment will eventually overwrite the root site
