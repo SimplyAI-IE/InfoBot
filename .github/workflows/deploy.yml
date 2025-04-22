@@ -25,7 +25,8 @@ jobs:
         username: ${{ secrets.A2_USER }}
         key: ${{ secrets.A2_SSH_KEY }}
         port: ${{ secrets.A2_PORT }}
-        source: "dist/*"
+        source: "dist/*"       # ✅ Deploy contents only
         target: ${{ secrets.A2_PATH }}
-        rm: true   # Clean remote folder before copying
+        rm: true               # ✅ Clean old deploys
+    
     
