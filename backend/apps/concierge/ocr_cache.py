@@ -2,13 +2,26 @@ from pathlib import Path
 from PIL import Image
 import pytesseract
 
+
+OCR_CACHE_DIR = Path(__file__).parent / "ocr_cache"
+
+
+def bulk_process_directory(input_dir: Path) -> None:
+    from .ocr_engine import ocr_image  # Assuming this exists
+
+    OCR_CACHE_DIR.mkdir(exist_ok=True)
+
+    for image_path in input_dir.glob("*.*"):
+        try:
+            text = ocr_image(image_path)
+            cache_path = OCR_CACHE_DIR / f"{image_path.stem}.txt"
+            cache_path.write_text(text, encoding="utf-8")
+        except Exception as e:
+            print(f"Failed to OCR {image_path.name}: {e}")
+
+
 OCR_CACHE_DIR = Path(__file__).resolve().parent / "ocr_cache"
 OCR_CACHE_DIR.mkdir(parents=True, exist_ok=True)
-
-
-def bulk_process_directory(image_dir: Path) -> None:
-    for image_path in sorted(image_dir.glob("*.jpg")):
-        _ = get_cached_ocr_text(image_path)
 
 
 def get_cached_ocr_text(image_path: Path) -> str:
