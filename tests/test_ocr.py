@@ -1,6 +1,11 @@
 from pathlib import Path
-from apps.concierge.ocr_cache import get_cached_ocr_text
+import sys
 import pytest
+
+# Ensure backend is on the import path for local + CI environments
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from backend.apps.concierge.ocr_cache import get_cached_ocr_text
 
 
 def test_ocr_extraction_from_image():
