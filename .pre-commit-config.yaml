@@ -20,3 +20,11 @@ repos:
         additional_dependencies:
           - types-requests
           - types-PyYAML
+
+  - repo: local
+    hooks:
+      - id: pytest
+        name: Run Pytest
+        entry: pytest
+        language: system
+        types: [python]
