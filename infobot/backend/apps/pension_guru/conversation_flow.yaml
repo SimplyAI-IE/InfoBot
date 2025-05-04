@@ -1,0 +1,66 @@
+conversation_flow:
+  step_1_welcome_intro:
+    title: Welcome & Country Selection
+    description: Start the conversation and determine the user's country.
+    script_prompt: Hi! I can help guide you through checking your State Pension information.
+      To start, please tell me if you are primarily concerned with the pension system
+      in the UK or Ireland?
+    expect_field: region
+    next_step: step_2_country_branch
+  step_2_country_branch:
+    title: Branch Based on Country
+    description: Direct the conversation based on the user's country.
+    branching_logic:
+    - condition: uk, united kingdom # Allow variations
+      target_flow: uk_flow_phase_1_intro # Target specific UK step
+    - condition: ireland, ie # Allow variations
+      target_flow: step_ie_intro
+    - condition: other # Fallback for anything else
+      prompt: Sorry, I can currently only provide guidance for the UK and Ireland
+        State Pension systems. Please specify either UK or Ireland.
+      target_flow: step_1_welcome_intro # Go back to start if unsupported
+
+  # --- UK Flow Placeholder (Keep existing structure) ---
+  uk_flow_phase_1_intro: # Example starting point for UK flow
+    title: 'Phase 1: Introduction & Setup (UK)'
+    # ... (rest of UK flow steps) ...
+    script_prompt: Great, let's look at the UK State Pension... # Example prompt
+    next_step: uk_flow_phase_1_disclaimer # Example next step
+  uk_flow_phase_1_disclaimer:
+     script_prompt: Just a reminder, I'm not a financial advisor...
+     next_step: uk_flow_phase_1_tools
+  uk_flow_phase_1_tools:
+     script_prompt: To do this properly, you'll ideally need...
+     expect_field: has_tools # Example field, needs corresponding extraction
+     next_step: uk_flow_phase_2_age # Example next step
+
+  # --- Ireland Flow ---
+  step_ie_intro:
+    title: Ireland Intro
+    script_prompt: Okay, let's get started with your Irish pension. I'll need a couple of details.
+    next_step: step_ie_ask_prsi
+  step_ie_ask_prsi:
+    title: Ask PRSI Years
+    script_prompt: Roughly how many full years of PRSI contributions do you think you have? (Just your best estimate is fine)
+    expect_field: prsi_years
+    next_step: step_ie_ask_age # Ask age next
+  step_ie_ask_age: # New step to ask age
+    title: Ask Current Age
+    script_prompt: And how old are you currently?
+    expect_field: age
+    next_step: step_ie_ask_ret_age
+  step_ie_ask_ret_age:
+    title: Ask Retirement Age
+    script_prompt: At what age do you realistically plan to retire?
+    expect_field: retirement_age
+    next_step: step_ie_calculate # <<-- ADDED next_step
+  step_ie_calculate: # <<-- ADDED step
+    title: Calculate Irish Pension Trigger
+    description: All required info gathered, signal to calculate.
+    # This step might just transition. The calculation display happens outside the flow.
+    script_prompt: Thanks! I have the basic details needed (PRSI years, current age, planned retirement age). Let me check those figures...
+    next_step: null # Null indicates flow ends, ready for calculation/GPT
+
+  # --- Placeholder for remaining flow steps if needed ---
+  # uk_flow: ... (rest of detailed UK flow)
+  # ireland_flow: ... (rest of detailed Ireland flow if expanding beyond basic calc)
