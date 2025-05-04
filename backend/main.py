@@ -303,7 +303,8 @@ async def forget_chat_history(request: Request) -> Dict[str, str]:
 
 
 # Static file mount setup
-static_dir: str = os.path.abspath(os.path.join(os.path.dirname(__file__), "../public"))
+static_dir: str = os.path.join(os.path.dirname(__file__), "public")
+
 
 if os.path.isdir(static_dir):
     logger.info(f"Serving static files from: {static_dir}")
