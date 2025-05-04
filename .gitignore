@@ -4,38 +4,31 @@ __pycache__/
 *.egg-info/
 *.log
 
-# Virtualenv
+# Virtualenv and env files
 .venv/
-
-# Environment variables
 .env
 
-# PDF outputs or generated reports
-*.pdf
-
-# Ignore cache contents, but keep the folder
-cache/*
-!cache/.gitkeep
-
-# OCR + menu image data
-ocr_cache/* !ocr_cache/.gitkeep
-backend/apps/concierge/readImages/*
-!backend/apps/concierge/readImages/.gitkeep
-
-
-backend/apps/concierge/ocr_cache/*
-!backend/apps/concierge/ocr_cache/.gitkeep
-
-# JavaScript/Frontend build and dependency folders
+# Frontend dependencies and builds
 node_modules/
 dist/
 .astro/
-
-# Astro/React build caches
 .cache/
 
-# SQLite and runtime artifacts
+# Runtime artifacts
 *.db
-
-# Remove leftover lock or temp files
 *.swp
+
+# PDF outputs or reports
+*.pdf
+
+# OCR + image cache (preserve folder only)
+ocr_cache/*
+!ocr_cache/.gitkeep
+backend/apps/concierge/ocr_cache/*
+!backend/apps/concierge/ocr_cache/.gitkeep
+backend/apps/concierge/readImages/*
+!backend/apps/concierge/readImages/.gitkeep
+
+# Keep versioned files in cache/
+cache/*
+!cache/.gitkeep
