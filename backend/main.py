@@ -45,7 +45,7 @@ app.add_middleware(
 
 # Serve frontend static files from ../public/
 current_dir = os.path.dirname(os.path.abspath(__file__))
-static_dir = os.path.join(current_dir, "..", "public")
+static_dir = os.path.join(current_dir, "public")
 app.mount("/", StaticFiles(directory=os.path.join(current_dir, "..", "public"), html=True), name="static")
 
 # ✅ Serve /debug-files for runtime inspection
