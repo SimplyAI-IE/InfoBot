@@ -23,6 +23,9 @@ from backend.apps.base_app import BaseApp
 from backend.apps.pension_guru.flow_engine import PensionFlow
 from backend.apps.concierge.concierge_api import router as concierge_router
 
+from fastapi.staticfiles import StaticFiles
+import os
+
 setup_logging()
 
 logger = logging.getLogger(__name__)
@@ -39,6 +42,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Serve frontend static files from ../public/
+current_dir = os.path.dirname(os.path.abspath(__file__))
+static_dir = os.path.join(current_dir, "..", "public")
+
+app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
+
 
 os.environ["G_MESSAGES_DEBUG"] = ""
 load_dotenv()
