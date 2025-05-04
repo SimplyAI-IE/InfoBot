@@ -43,10 +43,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Serve frontend static files from ../public/
 current_dir = os.path.dirname(os.path.abspath(__file__))
 static_dir = os.path.join(current_dir, "public")
-app.mount("/", StaticFiles(directory=os.path.join(current_dir, "..", "public"), html=True), name="static")
+
+print(">> STATIC FILES FROM:", static_dir)  # Debug log for Render logs
+
 
 # ✅ Serve /debug-files for runtime inspection
 @app.get("/debug-files")
