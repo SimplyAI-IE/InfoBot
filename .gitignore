@@ -25,3 +25,17 @@ backend/apps/concierge/readImages/*
 
 backend/apps/concierge/ocr_cache/*
 !backend/apps/concierge/ocr_cache/.gitkeep
+
+# JavaScript/Frontend build and dependency folders
+node_modules/
+dist/
+.astro/
+
+# Astro/React build caches
+.cache/
+
+# SQLite and runtime artifacts
+*.db
+
+# Remove leftover lock or temp files
+*.swp
