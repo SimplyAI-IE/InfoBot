@@ -48,6 +48,17 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 static_dir = os.path.join(current_dir, "..", "public")
 app.mount("/", StaticFiles(directory=os.path.join(current_dir, "..", "public"), html=True), name="static")
 
+# ✅ Serve /debug-files for runtime inspection
+@app.get("/debug-files")
+def list_static_files():
+    try:
+        return {
+            "static_dir": static_dir,
+            "files": os.listdir(static_dir)
+        }
+    except Exception as e:
+        return {"error": str(e)}
+print(">> STATIC FILE PATH:", static_dir)
 
 
 os.environ["G_MESSAGES_DEBUG"] = ""
