@@ -25,11 +25,10 @@ repos:
     hooks:
       - id: pytest-windows
         name: Run Pytest (Windows)
-        entry: powershell -ExecutionPolicy Bypass -File hooks/pre-commit-pytest.ps1
+        entry: bash -c '[[ "$(uname -s)" == "MINGW"* || "$(uname -s)" == "CYGWIN"* || "$(uname -s)" == *"NT"* ]] && powershell -ExecutionPolicy Bypass -File hooks/pre-commit-pytest.ps1 || exit 0'
         language: system
         types: [python]
         exclude: ^\.github/|^\.
-        platform: win  # ✅ Only run on Windows
 
       - id: pytest-linux
         name: Run Pytest (Linux/CI)
