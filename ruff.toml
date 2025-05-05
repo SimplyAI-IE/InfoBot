@@ -1,11 +1,10 @@
-[tool.ruff]
 line-length = 100
 target-version = "py311"
-select = ["E", "F", "I", "UP", "B"]  # pycodestyle, pyflakes, isort, upgrade, bugbear
-ignore = ["E501"]  # Allow long lines; handled by formatter (e.g., black)
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]
 exclude = ["__pycache__", "tests/test_ocr.py"]
 
-[tool.ruff.isort]
+[isort]
 known-first-party = ["backend"]
 combine-as-imports = true
 force-wrap-aliases = true
