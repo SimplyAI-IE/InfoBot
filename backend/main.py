@@ -4,6 +4,7 @@ import json
 import logging
 import os
 from typing import Any
+import uuid
 from uuid import uuid4
 
 from dotenv import load_dotenv
@@ -21,6 +22,10 @@ from backend.gpt_engine import get_gpt_response
 from backend.logging_config import setup_logging
 from backend.memory import MemoryManager
 from backend.models import ChatHistory, SessionLocal, User, init_db
+
+DEPLOY_ID = uuid.uuid4().hex
+print("🟢 Running backend/main.py with deploy ID:", DEPLOY_ID)
+
 
 setup_logging()
 logger = logging.getLogger(__name__)
