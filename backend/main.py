@@ -298,16 +298,23 @@ async def serve_index() -> FileResponse:
 
 @app.post("/respond")
 async def respond(req: ChatRequest) -> JSONResponse:
-    message = req.message
     user_id = req.user_id or "guest"
+    message = req.message.strip()
     tone = req.tone or "neutral"
+
+    try:
+        reply = get_gpt_response(message, user_id, tone=tone)
+    except Exception as e:
+        logger.error(f"GPT error for {user_id}: {e}", exc_info=True)
+        reply = "Sorry, I had trouble answering that. Can you try again?"
 
     return JSONResponse(
         content={
-            "response": f"Hi {user_id}, you said: '{message}' (tone: {tone})",
+            "response": reply,
             "user_id": user_id,
         }
     )
+
 
 if os.path.isdir(static_dir):
     app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
