@@ -23,9 +23,16 @@ repos:
 
   - repo: local
     hooks:
-    - id: pytest-with-env
-      name: Run Pytest (Windows)
-      entry: powershell -ExecutionPolicy Bypass -File hooks/pre-commit-pytest.ps1
-      language: system
-      types: [python]
+      - id: pytest-windows
+        name: Run Pytest (Windows)
+        entry: powershell -ExecutionPolicy Bypass -File hooks/pre-commit-pytest.ps1
+        language: system
+        types: [python]
+        exclude: ^\.github/
 
+      - id: pytest-linux
+        name: Run Pytest (Linux/CI)
+        entry: hooks/pre-commit-pytest.sh
+        language: system
+        types: [python]
+        exclude: ^tests/test_ocr.py  # example; adjust if needed
