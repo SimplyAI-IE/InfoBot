@@ -308,7 +308,7 @@ static_dir: str = os.path.join(os.path.dirname(__file__), "public")
 
 if os.path.isdir(static_dir):
     logger.info(f"Serving static files from: {static_dir}")
-    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
 
 
 @app.get("/")
