@@ -1,3 +1,17 @@
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "httpx",
+    "mypy",
+    "ruff"
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+
+
 [build-system]
 requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
