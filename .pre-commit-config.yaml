@@ -28,11 +28,11 @@ repos:
         entry: powershell -ExecutionPolicy Bypass -File hooks/pre-commit-pytest.ps1
         language: system
         types: [python]
-        exclude: ^\.github/
+        exclude: ^\.github/  # Skip in CI runners
 
       - id: pytest-linux
         name: Run Pytest (Linux/CI)
         entry: hooks/pre-commit-pytest.sh
         language: system
         types: [python]
-        exclude: ^tests/test_ocr.py  # example; adjust if needed
+        exclude: ^tests/test_ocr.py
