@@ -9,7 +9,7 @@ client = TestClient(app)
 
 @pytest.mark.external
 @pytest.mark.skipif(
-    os.getenv("OPENAI_API_KEY") == "test-key" or not os.getenv("OPENAI_API_KEY"),
+    os.getenv("OPENAI_API_KEY", "") in ["", "test-key", "fake-ci-key"],
     reason="Skipping GPT test due to missing or fake API key"
 )
 
