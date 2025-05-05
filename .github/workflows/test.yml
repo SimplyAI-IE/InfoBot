@@ -22,21 +22,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install ".[dev]"
 
-      - name: Prepare environment
+      - name: Prepare environment for lint/type/test
         run: |
           echo "ACTIVE_APP=concierge" > .env
-          echo "OPENAI_API_KEY=test-key" >> .env
+          echo "OPENAI_API_KEY=fake-ci-key" >> .env
 
       - name: Lint with Ruff
-        run: |
-          ruff check .
+        run: ruff check .
 
       - name: Type-check with Mypy
-        run: |
-          PYTHONPATH=${{ github.workspace }} mypy backend tests
+        run: PYTHONPATH=${{ github.workspace }} mypy backend tests
 
       - name: Run tests (internal only)
-        run: |
-          echo "ACTIVE_APP=concierge" > .env
-          echo "OPENAI_API_KEY=test-key" >> .env
-          PYTHONPATH=${{ github.workspace }} pytest -m "not external"
+        run: PYTHONPATH=${{ github.workspace }} pytest -m "not external"
