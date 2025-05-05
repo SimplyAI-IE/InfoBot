@@ -9,7 +9,7 @@ from uuid import uuid4
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from weasyprint import HTML
@@ -290,3 +290,18 @@ async def serve_index() -> FileResponse:
         return FileResponse(file_path)
     else:
         raise HTTPException(status_code=404, detail="Frontend not found")
+
+
+@app.post("/respond")
+async def respond(request: Request) -> JSONResponse:  # ✅ Add return type
+    data = await request.json()
+    message = data.get("message", "")
+    user_id = data.get("user_id", "guest")
+    tone = data.get("tone", "neutral")
+
+    return JSONResponse(
+        content={
+            "response": f"Hi {user_id}, you said: '{message}' (tone: {tone})",
+            "user_id": user_id,
+        }
+    )

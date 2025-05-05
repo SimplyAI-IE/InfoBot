@@ -1,5 +1,5 @@
 const USE_LOCAL = false;
-const API_BASE = USE_LOCAL ? "http://localhost:10000" : "https://infobot-h7cr.onrender.com/";
+const API_BASE = USE_LOCAL ? "http://localhost:10000" : "https://infobot-h7cr.onrender.com";
 
 const form = document.getElementById("chat-form");
 const input = document.getElementById("user-input");
