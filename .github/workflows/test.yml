@@ -9,8 +9,6 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    env:
-      PYTHONPATH: ${{ github.workspace }}  # 👈 FIX: sets PYTHONPATH for all steps
 
     steps:
       - uses: actions/checkout@v4
@@ -19,13 +17,14 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install dependencies and set PYTHONPATH
         run: |
           python -m pip install --upgrade pip
           pip install ".[dev]"
+          echo "PYTHONPATH=${{ github.workspace }}" >> $GITHUB_ENV  # ✅ move here
 
       - name: Write test .env
-        run: echo "ACTIVE_APP=concierge" > .env  # 👈 FIX: prevent RuntimeError in gpt_engine
+        run: echo "ACTIVE_APP=concierge" > .env
 
       - name: Run tests
         run: |
