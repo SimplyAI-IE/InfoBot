@@ -21,10 +21,10 @@ jobs:
 
     - name: Install dependencies (runtime + typing)
       run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pytest ruff pre-commit
-        pip install "mypy[reports]" types-requests types-PyYAML
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest ruff pre-commit
+          pip install "mypy[reports]" types-requests types-PyYAML
 
     - name: Set environment variables
       run: |
@@ -44,10 +44,11 @@ jobs:
         PYTHONPATH=. pytest --maxfail=1 --disable-warnings
 
     - name: Run mypy
-      continue-on-error: false
       run: |
-        echo "🔍 Running mypy..."
-        PYTHONPATH=. mypy backend tests --pretty --show-error-codes
+          echo "🔍 Running mypy..."
+          which mypy
+          python -m mypy --version
+          PYTHONPATH=. python -m mypy backend tests --pretty --show-error-codes
 
     - name: Run ruff (lint)
       run: |
