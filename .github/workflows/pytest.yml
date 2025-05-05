@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: .
+        working-directory: .  # Ensures commands run in the root of the repo
 
     steps:
       - uses: actions/checkout@v3
@@ -26,5 +26,12 @@ jobs:
           pip install -r requirements.txt
           pip install pytest
 
+      - name: Set environment variables
+        run: |
+          echo "OPENAI_API_KEY=fake-ci-key" >> $GITHUB_ENV
+          echo "ACTIVE_APP=concierge" >> $GITHUB_ENV
+
       - name: Run Pytest
-        run: pytest
+        run: |
+          export PYTHONPATH=$(pwd)/backend:$PYTHONPATH  # Add backend to PYTHONPATH
+          pytest
