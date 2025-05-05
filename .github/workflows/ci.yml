@@ -19,17 +19,17 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: Install dependencies
+    - name: Install dependencies (runtime + typing)
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pytest mypy ruff
+        pip install pytest mypy ruff pre-commit
         pip install types-requests types-PyYAML
 
-    - name: Install pre-commit
+    - name: Set environment variables
       run: |
-        pip install pre-commit
-      
+        echo "ACTIVE_APP=pension_guru" >> $GITHUB_ENV
+        echo "OPENAI_API_KEY=fake-ci-key" >> $GITHUB_ENV
 
     - name: Debug environment
       run: |
@@ -37,30 +37,17 @@ jobs:
         python --version
         echo "PYTHONPATH=$PYTHONPATH"
 
-    - name: Set environment variables
-      run: |
-        echo "ACTIVE_APP=pension_guru" >> $GITHUB_ENV
-        echo "OPENAI_API_KEY=fake-ci-key" >> $GITHUB_ENV
-
-    
     - name: Run pytest
       continue-on-error: false
       run: |
         echo "🧪 Running tests..."
         PYTHONPATH=. pytest --maxfail=1 --disable-warnings
-      
-    - name: Print working directory and files
-      run: |
-        pwd
-        ls -la
-      
 
     - name: Run mypy
       continue-on-error: false
       run: |
         echo "🔍 Running mypy..."
         PYTHONPATH=. mypy backend tests --pretty --show-error-codes
-      
 
     - name: Run ruff (lint)
       run: |
@@ -69,4 +56,3 @@ jobs:
     - name: Run pre-commit checks
       run: |
         pre-commit run --all-files
-
