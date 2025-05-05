@@ -29,6 +29,7 @@ repos:
         language: system
         types: [python]
         exclude: ^\.github/|^\.
+        platform: win  # ✅ Only run on Windows
 
       - id: pytest-linux
         name: Run Pytest (Linux/CI)
