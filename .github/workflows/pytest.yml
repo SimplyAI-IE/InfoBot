@@ -23,7 +23,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r infobot/requirements.txt
+          pip install -r requirements.txt
           pip install pytest
 
       - name: Run Pytest
