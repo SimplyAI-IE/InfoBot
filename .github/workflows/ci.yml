@@ -23,8 +23,11 @@ jobs:
       run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest ruff pre-commit
-          pip install "mypy[reports]" types-requests types-PyYAML
+          pip install "mypy[reports]" types-requests types-PyYAML ruff pre-commit pytest
+
+    - name: Verify stub packages
+      run: |
+            pip list | grep -E 'mypy|types-requests|types-PyYAML'
 
     - name: Set environment variables
       run: |
@@ -43,7 +46,7 @@ jobs:
         echo "🧪 Running tests..."
         PYTHONPATH=. pytest --maxfail=1 --disable-warnings
 
-    - name: Run mypy
+    - name: Run mypy using Python module
       run: |
           echo "🔍 Running mypy via module..."
           python -m mypy backend tests --pretty --show-error-codes
