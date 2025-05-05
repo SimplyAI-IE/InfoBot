@@ -2,6 +2,27 @@ import re
 from backend.models import SessionLocal
 from backend.memory import MemoryManager
 from typing import Any, Optional
+from backend.apps.base_app import BaseApp
+
+class ConciergeApp(BaseApp):
+    def extract_user_data(self, user_id: str, message: str):
+        # Minimal implementation for now
+        return {}
+
+    def block_response(self, message: str, profile: dict) -> str:
+        return ""
+
+    def wants_tips(self, profile: dict, message: str, history: list) -> bool:
+        return False
+
+    def tips_reply(self) -> str:
+        return "Here are some great local recommendations!"
+
+    def get_pension_calculation_reply(self, user_id: str) -> str:
+        return ""
+
+    def should_offer_tips(self, reply: str) -> bool:
+        return "recommend" in reply.lower()
 
 
 def extract_user_data(user_id: str, msg: str) -> Optional[dict[str, Any]]:
