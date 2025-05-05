@@ -31,6 +31,10 @@ setup_logging()
 logger = logging.getLogger(__name__)
 app = FastAPI()
 
+@app.get("/healthz")
+async def healthz() -> Dict[str, str]:
+    return {"status": "ok"}
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -320,6 +324,4 @@ async def serve_index() -> FileResponse:
         raise HTTPException(status_code=404, detail="Frontend not found")
 
 
-@app.get("/healthz")
-async def healthz() -> Dict[str, str]:
-    return {"status": "ok"}
+
