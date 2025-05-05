@@ -1,4 +1,4 @@
-from infobot.intents.intent_detector import parse_intent_response
+from backend.intents.intent_detector import parse_intent_response
 
 
 def test_callback_requested():
