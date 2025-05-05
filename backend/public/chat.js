@@ -1,5 +1,5 @@
 const USE_LOCAL = true;
-const API_BASE = USE_LOCAL ? "http://localhost:8000" : "https://api.simplyai.ie";
+const API_BASE = USE_LOCAL ? "http://localhost:10000" : "https://your-backend-service.onrender.com";
 
 const form = document.getElementById("chat-form");
 const input = document.getElementById("user-input");
@@ -27,7 +27,7 @@ form.addEventListener("submit", async (e) => {
   input.value = "";
 
   try {
-    const res = await fetch(`${API_BASE}/chat`, {
+    const res = await fetch(`${API_BASE}/respond`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -38,7 +38,7 @@ form.addEventListener("submit", async (e) => {
     });
 
     const data = await res.json();
-    appendMessage("Pension Guru", data.response || "Something went wrong.", "planner");
+    appendMessage("Whitesands Concierge", data.response || "Something went wrong.", "planner");
 
     if (data.user_id) {
       sessionStorage.setItem("user_id", data.user_id);
@@ -72,7 +72,7 @@ function appendMessage(sender, text, role) {
 
 window.addEventListener("DOMContentLoaded", () => {
   const userId = ensureUserId();
-  fetch(`${API_BASE}/chat`, {
+  fetch(`${API_BASE}/respond`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -82,7 +82,7 @@ window.addEventListener("DOMContentLoaded", () => {
   })
   .then(res => res.json())
   .then(data => {
-    appendMessage("Pension Guru", data.response || "Welcome!", "planner");
+    appendMessage("Whitesands Concierge", data.response || "Welcome!", "planner");
     if (data.user_id) {
       sessionStorage.setItem("user_id", data.user_id);
     }
