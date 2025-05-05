@@ -9,6 +9,10 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      ACTIVE_APP: concierge
+      OPENAI_API_KEY: fake-ci-key
 
     steps:
       - uses: actions/checkout@v4
@@ -22,16 +26,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install ".[dev]"
 
-      - name: Prepare environment for lint/type/test
-        run: |
-          echo "ACTIVE_APP=concierge" > .env
-          echo "OPENAI_API_KEY=fake-ci-key" >> .env
-
       - name: Lint with Ruff
         run: ruff check .
 
       - name: Type-check with Mypy
-        run: PYTHONPATH=${{ github.workspace }} mypy backend tests
+        run: mypy backend tests
 
       - name: Run tests (internal only)
-        run: PYTHONPATH=${{ github.workspace }} pytest -m "not external"
+        run: pytest -m "not external"
