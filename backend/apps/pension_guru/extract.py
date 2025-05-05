@@ -137,7 +137,5 @@ class PensionGuruApp(BaseApp):
     def format_user_context(self, profile: dict[str, Any] | None) -> str:
         return "User profile summary not available."
 
-    def render_profile_field(
-        self, field: str, profile: dict[str, Any] | None
-    ) -> str:
+    def render_profile_field(self, field: str, profile: dict[str, Any] | None) -> str:
         return "—"

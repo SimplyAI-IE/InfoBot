@@ -1,4 +1,3 @@
-
 from openai import OpenAI
 
 from backend.apps.concierge.ocr_cache import OCR_CACHE_DIR

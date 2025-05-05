@@ -34,7 +34,5 @@ class BaseApp(ABC):
     @abstractmethod
     def get_pension_calculation_reply(self, user_id: str) -> str: ...
 
-    def pre_prompt(
-        self, profile: dict[str, Any] | None, user_id: str
-    ) -> str | None:
+    def pre_prompt(self, profile: dict[str, Any] | None, user_id: str) -> str | None:
         return None

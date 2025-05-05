@@ -7,7 +7,9 @@ class ConciergeApp(BaseApp):
     def extract_user_data(self, user_id: str, msg: str) -> dict[str, Any]:
         return {}
 
-    def block_response(self, user_input: str, profile: dict[str, Any] | None) -> str | None:
+    def block_response(
+        self, user_input: str, profile: dict[str, Any] | None
+    ) -> str | None:
         return None
 
     def tips_reply(self) -> str:
@@ -16,7 +18,9 @@ class ConciergeApp(BaseApp):
     def should_offer_tips(self, reply: str) -> bool:
         return False
 
-    def wants_tips(self, profile: dict[str, Any] | None, msg: str, history: list[dict[str, str]]) -> bool:
+    def wants_tips(
+        self, profile: dict[str, Any] | None, msg: str, history: list[dict[str, str]]
+    ) -> bool:
         return False
 
     def format_user_context(self, profile: dict[str, Any] | None) -> str:

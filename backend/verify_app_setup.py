@@ -3,9 +3,9 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from importlib import import_module
 import json
 import os
-from importlib import import_module
 
 from dotenv import load_dotenv
 

@@ -1,5 +1,3 @@
-
-
 def calculate_ireland_pension(
     prsi_years: int, age: int | None = None, retirement_age: int | None = None
 ) -> dict[str, str | float]:

@@ -1,8 +1,8 @@
 from pathlib import Path
 
-import yaml
 from fastapi import APIRouter
 from pydantic import BaseModel
+import yaml
 
 from backend.apps.concierge.concierge_gpt import concierge_gpt_response
 from backend.apps.concierge.facebook_feed import fetch_facebook_posts
@@ -18,9 +18,7 @@ class ConciergeQuery(BaseModel):
 
 
 # --- Load Knowledge Base ---
-with open(
-    Path(__file__).parent / "concierge_knowledge.yaml", encoding="utf-8"
-) as f:
+with open(Path(__file__).parent / "concierge_knowledge.yaml", encoding="utf-8") as f:
     knowledge = yaml.safe_load(f)
 
 # --- Load Follow-Up Flow ---

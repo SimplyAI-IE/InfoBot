@@ -1,6 +1,6 @@
 import logging
-import os
 from logging.handlers import RotatingFileHandler
+import os
 
 
 def setup_logging() -> None:

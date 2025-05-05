@@ -1,8 +1,8 @@
 import importlib
+from io import BytesIO
 import json
 import logging
 import os
-from io import BytesIO
 from typing import Any
 from uuid import uuid4
 
@@ -17,19 +17,20 @@ from weasyprint import HTML
 from backend.apps.base_app import BaseApp
 from backend.apps.concierge.concierge_api import router as concierge_router
 from backend.apps.pension_guru.flow_engine import PensionFlow
-from backend.gpt_engine import get_gpt_response  # ✅
+from backend.gpt_engine import get_gpt_response
 from backend.logging_config import setup_logging
 from backend.memory import MemoryManager
 from backend.models import ChatHistory, SessionLocal, User, init_db
 
 setup_logging()
-
 logger = logging.getLogger(__name__)
 app = FastAPI()
+
 
 @app.get("/healthz")
 async def healthz() -> dict[str, str]:
     return {"status": "ok"}
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -46,20 +47,13 @@ app.add_middleware(
 current_dir = os.path.dirname(os.path.abspath(__file__))
 static_dir = os.path.join(current_dir, "public")
 
-print(">> STATIC FILES FROM:", static_dir)  # Debug log for Render logs
 
-
-# ✅ Serve /debug-files for runtime inspection
 @app.get("/debug-files")
-def list_static_files():
+def list_static_files() -> dict[str, Any]:
     try:
-        return {
-            "static_dir": static_dir,
-            "files": os.listdir(static_dir)
-        }
+        return {"static_dir": static_dir, "files": os.listdir(static_dir)}
     except Exception as e:
         return {"error": str(e)}
-print(">> STATIC FILE PATH:", static_dir)
 
 
 os.environ["G_MESSAGES_DEBUG"] = ""
@@ -69,10 +63,7 @@ api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
     raise ValueError("Missing OPENAI_API_KEY in environment variables")
 
-logger.info("Initializing database...")
 init_db()
-logger.info("Database initialized.")
-
 db = SessionLocal()
 memory = MemoryManager(db)
 
@@ -105,7 +96,6 @@ if not isinstance(extract_instance, BaseApp):
         f"{app_id} extract module's class '{class_name}' does not implement required BaseApp interface."
     )
 
-logger.info(f"✅ Loaded app: {app_id} using class {class_name}")
 app.include_router(concierge_router)
 
 
@@ -114,10 +104,6 @@ async def chat(req: ChatRequest, request: Request) -> dict[str, str]:
     user_id: str = req.user_id or f"anon_{uuid4().hex[:10]}"
     user_message: str = req.message.strip()
     tone: str = req.tone or config.get("tone_instruction_default", "adult")
-
-    logger.info(
-        f"--- New Chat Request --- User: {user_id}, Tone: {tone}, Message: '{user_message}'"
-    )
 
     if user_message == "__INIT__":
         profile = memory.get_user_profile(user_id)
@@ -173,8 +159,6 @@ async def chat(req: ChatRequest, request: Request) -> dict[str, str]:
 
             if extract_instance.should_offer_tips(reply):
                 memory.save_user_profile(user_id, {"pending_action": "offer_tips"})
-            elif getattr(profile, "pending_action", None):
-                memory.save_user_profile(user_id, {"pending_action": None})
 
         return {"response": reply or "...", "user_id": user_id}
     except Exception as e:
@@ -188,18 +172,13 @@ async def chat(req: ChatRequest, request: Request) -> dict[str, str]:
 @app.post("/auth/google")
 async def auth_google(user_data: dict[str, Any]) -> dict[str, str]:
     if not user_data or "sub" not in user_data:
-        logger.error("Invalid user data received in /auth/google")
         raise HTTPException(status_code=400, detail="Invalid user data received")
 
     user_id: str = user_data["sub"]
-    logger.info(f"Processing Google auth for user_id: {user_id}")
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
-            logger.info(
-                f"New user detected, creating user and profile entry for user_id: {user_id}"
-            )
             user = User(
                 id=user_id,
                 name=user_data.get("name", "Unknown User"),
@@ -208,16 +187,14 @@ async def auth_google(user_data: dict[str, Any]) -> dict[str, str]:
             db.add(user)
             db.commit()
     except Exception as e:
-        logger.error(f"Database error during auth for {user_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Database operation failed") from e
-
     finally:
         db.close()
 
     return {"status": "ok", "user_id": user_id}
 
 
-@app.get("/export-pdf")
+@app.post("/export-pdf")
 async def export_pdf(user_id: str) -> StreamingResponse:
     profile = memory.get_user_profile(user_id)
     if not profile:
@@ -264,8 +241,9 @@ async def export_pdf(user_id: str) -> StreamingResponse:
         pdf_buffer.seek(0)
     except Exception as e:
         logger.error(f"Error generating PDF for user {user_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to generate PDF report.") from e
-
+        raise HTTPException(
+            status_code=500, detail="Failed to generate PDF report."
+        ) from e
 
     return StreamingResponse(
         pdf_buffer,
@@ -283,7 +261,6 @@ async def forget_chat_history(request: Request) -> dict[str, str]:
     if not user_id:
         raise HTTPException(status_code=400, detail="Missing user_id")
 
-    logger.info(f"Received request to forget data for user {user_id}")
     db = SessionLocal()
     try:
         deleted_chats = (
@@ -291,29 +268,18 @@ async def forget_chat_history(request: Request) -> dict[str, str]:
             .filter(ChatHistory.user_id == user_id)
             .delete(synchronize_session=False)
         )
-        logger.info(f"Deleted {deleted_chats} chat messages for user {user_id}")
-
         deleted_profile = memory.repo.delete_user_profile(user_id)
-        logger.info(f"Deleted profile entry for user {user_id}: {deleted_profile}")
-
         db.commit()
     except Exception as e:
         db.rollback()
-        logger.error(f"Error deleting data for {user_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to clear history") from e
-
     finally:
         db.close()
 
     return {"status": "ok", "message": "Chat history and profile cleared."}
 
 
-# Static file mount setup
-static_dir: str = os.path.join(os.path.dirname(__file__), "public")
-
-
 if os.path.isdir(static_dir):
-    logger.info(f"Serving static files from: {static_dir}")
     app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
 
 
@@ -324,6 +290,3 @@ async def serve_index() -> FileResponse:
         return FileResponse(file_path)
     else:
         raise HTTPException(status_code=404, detail="Frontend not found")
-
-
-

@@ -1,11 +1,11 @@
 import json
-import time
 from pathlib import Path
+import time
 from urllib.parse import urljoin, urlparse
 
-import requests
 from bs4 import BeautifulSoup, Tag
 from openai import OpenAI
+import requests
 
 # --- Config ---
 BASE_URL: str = "https://www.whitesands.ie"

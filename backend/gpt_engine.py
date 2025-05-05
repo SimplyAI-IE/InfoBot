@@ -51,10 +51,12 @@ extract_class = getattr(module, class_name)
 
 print("Remaining abstract methods:", extract_class.__abstractmethods__)
 print("Class being instantiated:", extract_class)
-print("Abstract methods left:", getattr(extract_class, '__abstractmethods__', None))
+print("Abstract methods left:", getattr(extract_class, "__abstractmethods__", None))
 print("Loaded from:", extract_class.__module__)
-print("File:", extract_class.__code__.co_filename if hasattr(extract_class, '__code__') else 'n/a')
-
+print(
+    "File:",
+    extract_class.__code__.co_filename if hasattr(extract_class, "__code__") else "n/a",
+)
 
 
 extract: BaseApp = extract_class()
@@ -62,7 +64,7 @@ if not isinstance(extract, BaseApp):
     raise TypeError(f"{class_name} must implement BaseApp interface")
 
 # ✅ Validate abstract method contract at runtime
-if getattr(extract_class, '__abstractmethods__', None):
+if getattr(extract_class, "__abstractmethods__", None):
     raise TypeError(
         f"{class_name} is missing required implementations: {extract_class.__abstractmethods__}"
     )
@@ -116,14 +118,22 @@ def get_gpt_response(user_input: str, user_id: str, tone: str = "") -> str:
         "genius": "Use technical depth and precision appropriate for a professor. Do not simplify.",
     }
     tone_instruction = tone_map.get(tone, "")
-    system_message = SYSTEM_PROMPT.replace("{{tone_instruction}}", tone_instruction) + "\n\n" + summary
+    system_message = (
+        SYSTEM_PROMPT.replace("{{tone_instruction}}", tone_instruction)
+        + "\n\n"
+        + summary
+    )
 
-    messages: list[ChatCompletionMessageParam] = [{"role": "system", "content": system_message}]
+    messages: list[ChatCompletionMessageParam] = [
+        {"role": "system", "content": system_message}
+    ]
     for msg in history:
         if msg["role"] in ("user", "assistant"):
             messages.append({"role": msg["role"], "content": msg["content"]})
         else:
-            logger.warning(f"Skipping invalid role: {msg['role']} for user_id: {user_id}")
+            logger.warning(
+                f"Skipping invalid role: {msg['role']} for user_id: {user_id}"
+            )
     messages.append({"role": "user", "content": user_input})
 
     try:

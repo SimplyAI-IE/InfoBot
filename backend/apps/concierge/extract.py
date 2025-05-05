@@ -10,10 +10,17 @@ class ConciergeApp(BaseApp):
     def extract_user_data(self, user_id: str, message: str) -> dict[str, Any]:
         return {}
 
-    def block_response(self, message: str, profile: dict[str, Any] | None) -> str | None:
+    def block_response(
+        self, message: str, profile: dict[str, Any] | None
+    ) -> str | None:
         return None
 
-    def wants_tips(self, profile: dict[str, Any] | None, message: str, history: list[dict[str, str]]) -> bool:
+    def wants_tips(
+        self,
+        profile: dict[str, Any] | None,
+        message: str,
+        history: list[dict[str, str]],
+    ) -> bool:
         return False
 
     def tips_reply(self) -> str:
@@ -30,7 +37,6 @@ class ConciergeApp(BaseApp):
 
     def render_profile_field(self, field: str, profile: dict[str, Any] | None) -> str:
         return f"{field}: {profile.get(field, 'N/A') if profile else 'N/A'}"
-
 
 
 def extract_user_data(user_id: str, msg: str) -> dict[str, Any] | None:

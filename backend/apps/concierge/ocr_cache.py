@@ -1,7 +1,7 @@
 from pathlib import Path
 
-import pytesseract
 from PIL import Image
+import pytesseract
 
 OCR_CACHE_DIR = Path(__file__).resolve().parent / "ocr_cache"
 OCR_CACHE_DIR.mkdir(parents=True, exist_ok=True)
