@@ -37,4 +37,6 @@ jobs:
 
       - name: Run tests (internal only)
         run: |
+          echo "ACTIVE_APP=concierge" > .env
+          echo "OPENAI_API_KEY=test-key" >> .env
           PYTHONPATH=${{ github.workspace }} pytest -m "not external"

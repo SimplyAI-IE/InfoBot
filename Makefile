@@ -1,8 +1,10 @@
 verify:
 	@echo "🔎 Running lint, type, and test checks..."
 	@ruff check .
-	@mypy backend tests
-	@PYTHONPATH=. ACTIVE_APP=concierge OPENAI_API_KEY=test-key pytest -m "not external"
+	@PYTHONPATH=. mypy backend tests
+	@echo "ACTIVE_APP=concierge" > .env
+	@echo "OPENAI_API_KEY=test-key" >> .env
+	@PYTHONPATH=. pytest -m "not external"
 
 format:
 	@echo "🎨 Formatting code with Ruff..."
