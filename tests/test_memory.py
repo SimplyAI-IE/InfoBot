@@ -1,8 +1,9 @@
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from backend.models import Base
+
 from backend.memory import MemoryManager
+from backend.models import Base
 
 
 @pytest.fixture(scope="function")

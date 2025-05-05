@@ -1,8 +1,8 @@
-from backend.gpt_engine import get_gpt_response
-from backend.models import SessionLocal
 from backend.apps.pension_guru.extract_user_data import (
     extract_user_data,
 )  # ✅ corrected import
+from backend.gpt_engine import get_gpt_response
+from backend.models import SessionLocal
 
 
 def interactive_test() -> None:

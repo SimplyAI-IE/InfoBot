@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+
 # Minimal app for API contract testing
 def create_test_app() -> FastAPI:
     app = FastAPI()

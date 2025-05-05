@@ -1,11 +1,11 @@
-import requests
-from bs4 import BeautifulSoup, Tag
-from urllib.parse import urljoin, urlparse
-from openai import OpenAI
 import json
 import time
 from pathlib import Path
-from typing import Set
+from urllib.parse import urljoin, urlparse
+
+import requests
+from bs4 import BeautifulSoup, Tag
+from openai import OpenAI
 
 # --- Config ---
 BASE_URL: str = "https://www.whitesands.ie"
@@ -18,7 +18,7 @@ client = OpenAI()
 
 
 def scrape_whitesands_raw() -> str:
-    visited: Set[str] = set()
+    visited: set[str] = set()
     to_visit: list[str] = [BASE_URL]
     all_text: list[str] = []
 
@@ -87,7 +87,7 @@ def parse_whitesands_content(raw_text: str) -> str:
 
 def get_cached_whitesands_facts(force: bool = False) -> str:
     if not force and CACHE_PATH.exists():
-        with open(CACHE_PATH, "r", encoding="utf-8") as f:
+        with open(CACHE_PATH, encoding="utf-8") as f:
             data = json.load(f)
         if time.time() - data["timestamp"] < CACHE_TTL_SECONDS:
             return data["facts"]

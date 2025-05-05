@@ -1,30 +1,26 @@
-import os
+import importlib
 import json
 import logging
-import importlib
-from typing import Optional, Dict, Any
+import os
+from io import BytesIO
+from typing import Any
+from uuid import uuid4
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-
 from pydantic import BaseModel
-from uuid import uuid4
-from dotenv import load_dotenv
 from weasyprint import HTML
-from io import BytesIO
 
-from backend.gpt_engine import get_gpt_response  # ✅
-from backend.memory import MemoryManager
-from backend.models import init_db, User, SessionLocal, ChatHistory
-from backend.logging_config import setup_logging
 from backend.apps.base_app import BaseApp
-from backend.apps.pension_guru.flow_engine import PensionFlow
 from backend.apps.concierge.concierge_api import router as concierge_router
-
-from fastapi.staticfiles import StaticFiles
-import os
+from backend.apps.pension_guru.flow_engine import PensionFlow
+from backend.gpt_engine import get_gpt_response  # ✅
+from backend.logging_config import setup_logging
+from backend.memory import MemoryManager
+from backend.models import ChatHistory, SessionLocal, User, init_db
 
 setup_logging()
 
@@ -32,7 +28,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI()
 
 @app.get("/healthz")
-async def healthz() -> Dict[str, str]:
+async def healthz() -> dict[str, str]:
     return {"status": "ok"}
 
 app.add_middleware(
@@ -78,16 +74,16 @@ memory = MemoryManager(db)
 
 
 class ChatRequest(BaseModel):
-    user_id: Optional[str] = None
+    user_id: str | None = None
     message: str
     tone: str = ""
 
 
-app_id: Optional[str] = os.getenv("ACTIVE_APP")
+app_id: str | None = os.getenv("ACTIVE_APP")
 if not app_id:
     raise RuntimeError("ACTIVE_APP environment variable not set.")
 
-config: Dict[str, Any] = json.load(open(f"backend/apps/{app_id}/config.json"))
+config: dict[str, Any] = json.load(open(f"backend/apps/{app_id}/config.json"))
 
 try:
     module = importlib.import_module(f"backend.apps.{app_id}.extract")
@@ -135,7 +131,7 @@ async def chat(req: ChatRequest, request: Request) -> dict[str, str]:
         profile = extract_instance.extract_user_data(user_id, user_message)
     except Exception as e:
         logger.error(f"Data extraction error for {user_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Extraction failed")
+        raise HTTPException(status_code=500, detail="Extraction failed") from e
 
     block_msg = extract_instance.block_response(user_message, profile)
     if block_msg:
@@ -182,11 +178,11 @@ async def chat(req: ChatRequest, request: Request) -> dict[str, str]:
         raise HTTPException(
             status_code=500,
             detail="I'm sorry, something broke. Please try again shortly.",
-        )
+        ) from e
 
 
 @app.post("/auth/google")
-async def auth_google(user_data: Dict[str, Any]) -> Dict[str, str]:
+async def auth_google(user_data: dict[str, Any]) -> dict[str, str]:
     if not user_data or "sub" not in user_data:
         logger.error("Invalid user data received in /auth/google")
         raise HTTPException(status_code=400, detail="Invalid user data received")
@@ -208,9 +204,9 @@ async def auth_google(user_data: Dict[str, Any]) -> Dict[str, str]:
             db.add(user)
             db.commit()
     except Exception as e:
-        db.rollback()
         logger.error(f"Database error during auth for {user_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Database operation failed")
+        raise HTTPException(status_code=500, detail="Database operation failed") from e
+
     finally:
         db.close()
 
@@ -264,7 +260,8 @@ async def export_pdf(user_id: str) -> StreamingResponse:
         pdf_buffer.seek(0)
     except Exception as e:
         logger.error(f"Error generating PDF for user {user_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to generate PDF report.")
+        raise HTTPException(status_code=500, detail="Failed to generate PDF report.") from e
+
 
     return StreamingResponse(
         pdf_buffer,
@@ -276,9 +273,9 @@ async def export_pdf(user_id: str) -> StreamingResponse:
 
 
 @app.post("/chat/forget")
-async def forget_chat_history(request: Request) -> Dict[str, str]:
-    data: Dict[str, Any] = await request.json()
-    user_id: Optional[str] = data.get("user_id")
+async def forget_chat_history(request: Request) -> dict[str, str]:
+    data: dict[str, Any] = await request.json()
+    user_id: str | None = data.get("user_id")
     if not user_id:
         raise HTTPException(status_code=400, detail="Missing user_id")
 
@@ -299,7 +296,8 @@ async def forget_chat_history(request: Request) -> Dict[str, str]:
     except Exception as e:
         db.rollback()
         logger.error(f"Error deleting data for {user_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to clear history")
+        raise HTTPException(status_code=500, detail="Failed to clear history") from e
+
     finally:
         db.close()
 

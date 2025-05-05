@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any
 
 
 class BaseApp(ABC):
@@ -9,8 +9,8 @@ class BaseApp(ABC):
 
     @abstractmethod
     def block_response(
-        self, user_input: str, profile: Optional[dict[str, Any]]
-    ) -> Optional[str]: ...
+        self, user_input: str, profile: dict[str, Any] | None
+    ) -> str | None: ...
 
     @abstractmethod
     def tips_reply(self) -> str: ...
@@ -20,21 +20,21 @@ class BaseApp(ABC):
 
     @abstractmethod
     def wants_tips(
-        self, profile: Optional[dict[str, Any]], msg: str, history: list[dict[str, str]]
+        self, profile: dict[str, Any] | None, msg: str, history: list[dict[str, str]]
     ) -> bool: ...
 
     @abstractmethod
-    def format_user_context(self, profile: Optional[dict[str, Any]]) -> str: ...
+    def format_user_context(self, profile: dict[str, Any] | None) -> str: ...
 
     @abstractmethod
     def render_profile_field(
-        self, field: str, profile: Optional[dict[str, Any]]
+        self, field: str, profile: dict[str, Any] | None
     ) -> str: ...
 
     @abstractmethod
     def get_pension_calculation_reply(self, user_id: str) -> str: ...
 
     def pre_prompt(
-        self, profile: Optional[dict[str, Any]], user_id: str
-    ) -> Optional[str]:
+        self, profile: dict[str, Any] | None, user_id: str
+    ) -> str | None:
         return None

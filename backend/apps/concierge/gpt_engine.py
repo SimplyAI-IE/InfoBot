@@ -1,5 +1,5 @@
+
 from openai import OpenAI
-from typing import Optional
 
 client = OpenAI()
 
@@ -22,7 +22,7 @@ def concierge_gpt_response(message: str) -> str:
             max_tokens=300,
         )
 
-        content: Optional[str] = response.choices[0].message.content
+        content: str | None = response.choices[0].message.content
         return content.strip() if content else "I'm not sure how to respond."
 
     except Exception as e:

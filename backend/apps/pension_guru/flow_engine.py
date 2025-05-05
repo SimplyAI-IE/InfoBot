@@ -1,21 +1,23 @@
-import os
-import yaml
 import logging
-from backend.models import SessionLocal
+import os
+from typing import Any
+
+import yaml
+
 from backend.memory import MemoryManager
-from typing import Any, Optional
+from backend.models import SessionLocal
 
 logger = logging.getLogger(__name__)
 
 
 class PensionFlow:
-    def __init__(self, profile: Optional[dict[str, Any]], user_id: str):
-        self.profile: Optional[dict[str, Any]] = profile
+    def __init__(self, profile: dict[str, Any] | None, user_id: str):
+        self.profile: dict[str, Any] | None = profile
         self.user_id: str = user_id
         self.flow_path: str = os.path.join(
             os.path.dirname(__file__), "conversation_flow.yaml"
         )
-        with open(self.flow_path, "r") as f:
+        with open(self.flow_path) as f:
             self.flow: dict[str, dict[str, Any]] = yaml.safe_load(f)[
                 "conversation_flow"
             ]
@@ -30,7 +32,7 @@ class PensionFlow:
             f"PensionFlow initialized for user {user_id}. Current step: {self.current_step_name}"
         )
 
-    def step(self) -> Optional[str]:
+    def step(self) -> str | None:
         try:
             if not self.current_step_name:
                 return None
@@ -43,8 +45,8 @@ class PensionFlow:
 
             if "branching_logic" in current_node:
                 region = self._get_profile_value("region")
-                target_flow: Optional[str] = None
-                fallback_prompt: Optional[str] = None
+                target_flow: str | None = None
+                fallback_prompt: str | None = None
 
                 if region:
                     for branch in current_node["branching_logic"]:
@@ -93,7 +95,7 @@ class PensionFlow:
         finally:
             self.db.close()
 
-    def _get_profile_value(self, key: str, default: Optional[str] = None) -> Any:
+    def _get_profile_value(self, key: str, default: str | None = None) -> Any:
         if isinstance(self.profile, dict):
             return self.profile.get(key, default)
         return default

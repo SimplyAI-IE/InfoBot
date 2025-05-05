@@ -1,7 +1,8 @@
 import importlib
-import os
 import pkgutil
+
 from backend.apps.base_app import BaseApp
+
 
 def discover_app_modules(package):
     prefix = package.__name__ + "."

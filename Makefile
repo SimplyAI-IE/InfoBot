@@ -14,3 +14,9 @@ format:
 typefix:
 	@echo "🛠️ Running mypy with autofix (if any tools support it)..."
 	@mypy backend tests
+
+autofix:
+	@echo "🛠️ Auto-fixing code style and imports..."
+	@ruff format .
+	@ruff check . --fix
+	@git add .

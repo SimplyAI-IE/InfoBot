@@ -1,5 +1,6 @@
 import json
 
+
 def parse_intent_response(response: str) -> dict:
     try:
         parsed = json.loads(response)

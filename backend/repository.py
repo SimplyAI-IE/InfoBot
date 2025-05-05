@@ -1,7 +1,9 @@
+from datetime import UTC, datetime
+from typing import Any
+
 from sqlalchemy.orm import Session
-from backend.models import UserProfile, ChatHistory
-from datetime import datetime, timezone
-from typing import Optional, Any
+
+from backend.models import ChatHistory, UserProfile
 
 
 class SessionRepository:
@@ -9,7 +11,7 @@ class SessionRepository:
         self.db: Session = db_session
 
     # --- UserProfile ---
-    def get_user_profile(self, user_id: str) -> Optional[UserProfile]:
+    def get_user_profile(self, user_id: str) -> UserProfile | None:
         return self.db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
 
     def upsert_user_profile(self, user_id: str, updates: dict[str, Any]) -> None:
@@ -46,7 +48,7 @@ class SessionRepository:
         ]
 
     # Stub methods to satisfy memory.py references
-    def get_session_by_id(self, session_id: str) -> Optional[Any]:
+    def get_session_by_id(self, session_id: str) -> Any | None:
         return None
 
     def upsert_session(self, session_id: str, data: dict[str, Any]) -> None:
@@ -60,7 +62,7 @@ class SessionRepository:
             user_id=user_id,
             role=role,
             content=content,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
         self.db.add(entry)
         self.db.commit()

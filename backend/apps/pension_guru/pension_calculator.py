@@ -1,9 +1,8 @@
-from typing import Optional, Union
 
 
 def calculate_ireland_pension(
-    prsi_years: int, age: Optional[int] = None, retirement_age: Optional[int] = None
-) -> dict[str, Union[str, float]]:
+    prsi_years: int, age: int | None = None, retirement_age: int | None = None
+) -> dict[str, str | float]:
     return {
         "currency": "€",
         "weekly_pension_now": float(prsi_years * 10),
@@ -14,7 +13,7 @@ def calculate_ireland_pension(
     }
 
 
-def calculate_uk_pension(ni_years: int) -> dict[str, Union[str, float]]:
+def calculate_uk_pension(ni_years: int) -> dict[str, str | float]:
     weekly = ni_years * 5.0
     return {
         "currency": "£",
@@ -29,9 +28,9 @@ def calculate_uk_pension(ni_years: int) -> dict[str, Union[str, float]]:
 def calculate_pension(
     region: str,
     years: int,
-    age: Optional[int] = None,
-    retirement_age: Optional[int] = None,
-) -> dict[str, Union[str, float]]:
+    age: int | None = None,
+    retirement_age: int | None = None,
+) -> dict[str, str | float]:
     if region.lower() == "ireland":
         return calculate_ireland_pension(years, age, retirement_age)
     elif region.lower() == "uk":

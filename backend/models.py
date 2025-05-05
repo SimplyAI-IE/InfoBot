@@ -1,9 +1,8 @@
-from sqlalchemy import Column, String, Integer, DateTime, Text
-from sqlalchemy.orm import DeclarativeBase
 from datetime import datetime
 from typing import Any
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+
+from sqlalchemy import Column, DateTime, Integer, String, Text, create_engine
+from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 
 # SQLAlchemy Base definition using modern DeclarativeBase (if supported)
@@ -52,8 +51,7 @@ class ChatHistory(Base):
 
 
 def init_db() -> None:
-    from backend.models import Base
-    from backend.models import SessionLocal
+    from backend.models import Base, SessionLocal
 
     engine = SessionLocal().get_bind()
     Base.metadata.create_all(bind=engine)

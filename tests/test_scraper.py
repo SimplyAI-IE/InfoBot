@@ -1,8 +1,10 @@
 import os
+
 import pytest
 from fastapi.testclient import TestClient
-from backend.main import app
+
 from backend.apps.concierge.whitesands_scraper import scrape_whitesands_raw
+from backend.main import app
 
 client = TestClient(app)
 

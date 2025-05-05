@@ -1,18 +1,18 @@
-import feedparser
-import yaml
 import time
 from pathlib import Path
-from typing import List, Dict
+
+import feedparser
+import yaml
 
 FEED_URL = "https://rss.app/feeds/1d2cJLp1b3BgSzQB.xml"
 CACHE_PATH = Path(__file__).resolve().parent / "facebook_updates.yaml"
 CACHE_TTL = 60 * 60  # 1 hour
 
 
-def fetch_facebook_posts(force: bool = False) -> List[Dict[str, str]]:
+def fetch_facebook_posts(force: bool = False) -> list[dict[str, str]]:
     if not force and CACHE_PATH.exists():
         if time.time() - CACHE_PATH.stat().st_mtime < CACHE_TTL:
-            with open(CACHE_PATH, "r", encoding="utf-8") as f:
+            with open(CACHE_PATH, encoding="utf-8") as f:
                 return yaml.safe_load(f)
 
     feed = feedparser.parse(FEED_URL)

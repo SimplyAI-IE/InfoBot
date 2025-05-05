@@ -1,23 +1,24 @@
-import sys
 import os
+import sys
 
 sys.path.insert(
     0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../backend"))
 )
 
-from backend.apps.concierge.startup import preload_concierge_assets
-from backend.apps.base_app import BaseApp
-from backend.models import SessionLocal
-from backend.memory import MemoryManager
-from typing import Optional, Any
+from typing import Any
 
-from .flow_engine import PensionFlow
+from backend.apps.base_app import BaseApp
+from backend.apps.concierge.startup import preload_concierge_assets
+from backend.memory import MemoryManager
+from backend.models import SessionLocal
+
 from .extract_user_data import (
     extract_age,
-    extract_retirement_age,
-    extract_region,
     extract_prsi_years,
+    extract_region,
+    extract_retirement_age,
 )
+from .flow_engine import PensionFlow
 from .pension_calculator import calculate_pension
 
 
@@ -118,8 +119,8 @@ class PensionGuruApp(BaseApp):
             db.close()
 
     def block_response(
-        self, user_input: str, profile: Optional[dict[str, Any]]
-    ) -> Optional[str]:
+        self, user_input: str, profile: dict[str, Any] | None
+    ) -> str | None:
         return None
 
     def tips_reply(self) -> str:
@@ -129,14 +130,14 @@ class PensionGuruApp(BaseApp):
         return False
 
     def wants_tips(
-        self, profile: Optional[dict[str, Any]], msg: str, history: list[dict[str, str]]
+        self, profile: dict[str, Any] | None, msg: str, history: list[dict[str, str]]
     ) -> bool:
         return False
 
-    def format_user_context(self, profile: Optional[dict[str, Any]]) -> str:
+    def format_user_context(self, profile: dict[str, Any] | None) -> str:
         return "User profile summary not available."
 
     def render_profile_field(
-        self, field: str, profile: Optional[dict[str, Any]]
+        self, field: str, profile: dict[str, Any] | None
     ) -> str:
         return "—"

@@ -1,16 +1,17 @@
-import sys
-import os
+import importlib
 import json
 import logging
-import importlib
-from typing import Any, Optional
+import os
+import sys
+from typing import Any
 
-from backend.models import SessionLocal, User
-from backend.memory import MemoryManager
-from backend.apps.base_app import BaseApp  # 🔧 FIXED: Correct import path
-from openai import OpenAI
 from dotenv import load_dotenv
+from openai import OpenAI
 from openai.types.chat import ChatCompletionMessageParam
+
+from backend.apps.base_app import BaseApp  # 🔧 FIXED: Correct import path
+from backend.memory import MemoryManager
+from backend.models import SessionLocal, User
 
 # Logging setup
 logger = logging.getLogger(__name__)
@@ -80,7 +81,7 @@ def get_gpt_response(user_input: str, user_id: str, tone: str = "") -> str:
     db = SessionLocal()
     memory = MemoryManager(db)
     try:
-        profile: Optional[dict[str, Any]] = memory.get_user_profile(user_id)
+        profile: dict[str, Any] | None = memory.get_user_profile(user_id)
         history = memory.get_chat_history(user_id, limit=CHAT_HISTORY_LIMIT)
     finally:
         db.close()
@@ -130,7 +131,7 @@ def get_gpt_response(user_input: str, user_id: str, tone: str = "") -> str:
         response = client.chat.completions.create(
             model="gpt-3.5-turbo", messages=messages, temperature=0.7
         )
-        reply: Optional[str] = response.choices[0].message.content
+        reply: str | None = response.choices[0].message.content
         logger.info(f"OpenAI API call successful for user_id: {user_id}")
         return reply.strip() if reply else "..."
     except Exception as e:

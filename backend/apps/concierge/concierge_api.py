@@ -1,13 +1,13 @@
+from pathlib import Path
+
+import yaml
 from fastapi import APIRouter
 from pydantic import BaseModel
-from pathlib import Path
-from typing import Optional, Dict
-import yaml
 
-from backend.apps.concierge.facebook_feed import fetch_facebook_posts
 from backend.apps.concierge.concierge_gpt import concierge_gpt_response
-from backend.apps.concierge.whitesands_scraper import get_cached_whitesands_facts
+from backend.apps.concierge.facebook_feed import fetch_facebook_posts
 from backend.apps.concierge.intent_gpt import resolve_intent
+from backend.apps.concierge.whitesands_scraper import get_cached_whitesands_facts
 
 router = APIRouter()
 
@@ -19,23 +19,23 @@ class ConciergeQuery(BaseModel):
 
 # --- Load Knowledge Base ---
 with open(
-    Path(__file__).parent / "concierge_knowledge.yaml", "r", encoding="utf-8"
+    Path(__file__).parent / "concierge_knowledge.yaml", encoding="utf-8"
 ) as f:
     knowledge = yaml.safe_load(f)
 
 # --- Load Follow-Up Flow ---
-with open(Path(__file__).parent / "concierge_flow.yaml", "r", encoding="utf-8") as f:
+with open(Path(__file__).parent / "concierge_flow.yaml", encoding="utf-8") as f:
     concierge_flow = yaml.safe_load(f)["intents"]
 
 
 # --- Facts endpoint ---
 @router.get("/concierge/facts")
-def get_whitesands_facts(force: bool = False) -> Dict[str, str]:
+def get_whitesands_facts(force: bool = False) -> dict[str, str]:
     return {"facts": get_cached_whitesands_facts(force=force)}
 
 
 # --- Intent Matching (simple substring search) ---
-def match_intent(message: str) -> Optional[str]:
+def match_intent(message: str) -> str | None:
     msg = message.lower()
 
     for key in knowledge["hotel"]:
@@ -51,7 +51,7 @@ def match_intent(message: str) -> Optional[str]:
 
 # --- Main Endpoint ---
 @router.post("/concierge")
-async def handle_concierge(req: ConciergeQuery) -> Dict[str, str]:
+async def handle_concierge(req: ConciergeQuery) -> dict[str, str]:
     intent = resolve_intent(req.message)
 
     if intent in knowledge["hotel"]:

@@ -1,18 +1,19 @@
 import re
-from backend.models import SessionLocal
-from backend.memory import MemoryManager
-from typing import Any, Optional, Dict
+from typing import Any
+
 from backend.apps.base_app import BaseApp
+from backend.memory import MemoryManager
+from backend.models import SessionLocal
 
 
 class ConciergeApp(BaseApp):
-    def extract_user_data(self, user_id: str, message: str) -> Dict[str, Any]:
+    def extract_user_data(self, user_id: str, message: str) -> dict[str, Any]:
         return {}
 
-    def block_response(self, message: str, profile: Optional[Dict[str, Any]]) -> Optional[str]:
+    def block_response(self, message: str, profile: dict[str, Any] | None) -> str | None:
         return None
 
-    def wants_tips(self, profile: Optional[Dict[str, Any]], message: str, history: list[Dict[str, str]]) -> bool:
+    def wants_tips(self, profile: dict[str, Any] | None, message: str, history: list[dict[str, str]]) -> bool:
         return False
 
     def tips_reply(self) -> str:
@@ -24,15 +25,15 @@ class ConciergeApp(BaseApp):
     def should_offer_tips(self, reply: str) -> bool:
         return "recommend" in reply.lower()
 
-    def format_user_context(self, profile: Optional[Dict[str, Any]]) -> str:
+    def format_user_context(self, profile: dict[str, Any] | None) -> str:
         return f"Formatted context: {profile}"
 
-    def render_profile_field(self, field: str, profile: Optional[Dict[str, Any]]) -> str:
+    def render_profile_field(self, field: str, profile: dict[str, Any] | None) -> str:
         return f"{field}: {profile.get(field, 'N/A') if profile else 'N/A'}"
 
 
 
-def extract_user_data(user_id: str, msg: str) -> Optional[dict[str, Any]]:
+def extract_user_data(user_id: str, msg: str) -> dict[str, Any] | None:
     msg_lower = msg.lower()
 
     db = SessionLocal()

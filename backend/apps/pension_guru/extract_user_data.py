@@ -1,10 +1,10 @@
 import re
-from typing import Optional
-from backend.models import SessionLocal
+
 from backend.memory import MemoryManager
+from backend.models import SessionLocal
 
 
-def extract_age(msg: str) -> Optional[int]:
+def extract_age(msg: str) -> int | None:
     patterns = [
         r"\b(\d{1,2})\s*years?\s*old\b",
         r"\bage\s*(is)?\s*(\d{1,2})\b",
@@ -28,7 +28,7 @@ def extract_age(msg: str) -> Optional[int]:
     return None
 
 
-def extract_income(msg: str) -> Optional[int]:
+def extract_income(msg: str) -> int | None:
     match = re.search(r"\b(?:€|£)?(\d{2,6})([kK]?)\b", msg.replace(",", ""))
     if match:
         val = int(match.group(1))
@@ -39,7 +39,7 @@ def extract_income(msg: str) -> Optional[int]:
     return None
 
 
-def extract_retirement_age(msg: str) -> Optional[int]:
+def extract_retirement_age(msg: str) -> int | None:
     match_keyword = re.search(r"\b(?:retire|retirement).{0,20}?(\d{2})\b", msg)
     if match_keyword:
         age = int(match_keyword.group(1))
@@ -58,7 +58,7 @@ def extract_retirement_age(msg: str) -> Optional[int]:
     return None
 
 
-def extract_risk_profile(msg: str) -> Optional[str]:
+def extract_risk_profile(msg: str) -> str | None:
     msg = msg.lower()
     if "low risk" in msg:
         return "Low"
@@ -69,7 +69,7 @@ def extract_risk_profile(msg: str) -> Optional[str]:
     return None
 
 
-def extract_region(msg: str) -> Optional[str]:
+def extract_region(msg: str) -> str | None:
     msg = msg.lower().strip()
     print(f"📨 Checking region in msg: {msg}")
     if "ireland" in msg or " ie" in msg or msg == "ie":
@@ -97,7 +97,7 @@ def extract_region(msg: str) -> Optional[str]:
     return None
 
 
-def extract_prsi_years(msg: str) -> Optional[int]:
+def extract_prsi_years(msg: str) -> int | None:
     match_keyword = re.search(
         r"(\d{1,2})\s+(?:years?|yrs?)\s+(?:of\s+)?(?:prsi|contributions?)", msg
     )
@@ -118,12 +118,12 @@ def extract_prsi_years(msg: str) -> Optional[int]:
     return None
 
 
-def extract_user_data(user_id: str, msg: str) -> dict[str, Optional[int]]:
+def extract_user_data(user_id: str, msg: str) -> dict[str, int | None]:
     print(f"🛠 extract_user_data running for user {user_id} with message: {msg}")
     db = SessionLocal()
     memory = MemoryManager(db)
     try:
-        extracted: dict[str, Optional[int]] = {}
+        extracted: dict[str, int | None] = {}
         age = extract_age(msg.lower())
         if age is not None:
             memory.save_user_profile(user_id, {"age": age})

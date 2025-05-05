@@ -1,6 +1,8 @@
+from typing import Any
+
 from sqlalchemy.orm import Session
+
 from backend.repository import SessionRepository
-from typing import Optional, Any
 
 
 class MemoryManager:
@@ -8,7 +10,7 @@ class MemoryManager:
         self.repo = SessionRepository(db_session)
 
     # --- SessionData (if you later reintroduce it) ---
-    def load_session(self, session_id: str) -> Optional[dict]:
+    def load_session(self, session_id: str) -> dict | None:
         session = self.repo.get_session_by_id(session_id)
         return session.data if session else None
 
@@ -19,7 +21,7 @@ class MemoryManager:
         self.repo.delete_session(session_id)
 
     # --- Profile ---
-    def get_user_profile(self, user_id: str) -> Optional[Any]:
+    def get_user_profile(self, user_id: str) -> Any | None:
         return self.repo.get_user_profile(user_id)
 
     def save_user_profile(self, user_id: str, updates: dict[str, Any]) -> None:

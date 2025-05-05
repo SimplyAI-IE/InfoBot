@@ -1,6 +1,7 @@
+
 from openai import OpenAI
+
 from backend.apps.concierge.ocr_cache import OCR_CACHE_DIR
-from typing import Optional
 
 client = OpenAI()
 
@@ -46,7 +47,7 @@ def concierge_gpt_response(message: str) -> str:
             temperature=0.7,
             max_tokens=500,
         )
-        content: Optional[str] = response.choices[0].message.content
+        content: str | None = response.choices[0].message.content
         return content.strip() if content else "No response available."
 
     except Exception as e:

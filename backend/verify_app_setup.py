@@ -1,13 +1,13 @@
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-import os
 import json
+import os
 from importlib import import_module
-from dotenv import load_dotenv
 
+from dotenv import load_dotenv
 
 # Load .env
 load_dotenv()
@@ -36,7 +36,8 @@ with open(prompt_path, encoding="utf-8") as f:
 try:
     extract = import_module(f"apps.{app_id}.extract")
 except ImportError as e:
-    raise ImportError(f"❌ Could not import extractor for app '{app_id}': {e}")
+    raise ImportError(f"❌ Could not import extractor for app '{app_id}': {e}") from e
+
 
 # Check OpenAI key
 api_key = os.getenv("OPENAI_API_KEY")
