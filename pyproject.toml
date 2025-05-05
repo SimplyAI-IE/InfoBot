@@ -33,7 +33,7 @@ dependencies = [
     "feedparser",
     "beautifulsoup4",
     "requests",
-    "tqdm"
+    "tqdm",
     "weasyprint"
 ]
 
