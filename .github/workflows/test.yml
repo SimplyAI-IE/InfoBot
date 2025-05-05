@@ -25,6 +25,7 @@ jobs:
 
       - name: Write test .env
         run: echo "ACTIVE_APP=concierge" > .env
+             echo "OPENAI_API_KEY=test-key" >> .env
 
       - name: Run tests
         run: |
