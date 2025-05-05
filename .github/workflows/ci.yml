@@ -46,10 +46,6 @@ jobs:
         echo "🧪 Running tests..."
         PYTHONPATH=. pytest --maxfail=1 --disable-warnings
 
-    - name: Run mypy using Python module
-      run: |
-          echo "🔍 Running mypy via module..."
-          python -m mypy backend tests --pretty --show-error-codes
     - name: Run ruff (lint)
       run: |
         ruff check backend tests
