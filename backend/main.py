@@ -65,6 +65,10 @@ print(">> STATIC FILE PATH:", static_dir)
 os.environ["G_MESSAGES_DEBUG"] = ""
 load_dotenv()
 
+api_key = os.getenv("OPENAI_API_KEY")
+if not api_key:
+    raise ValueError("Missing OPENAI_API_KEY in environment variables")
+
 logger.info("Initializing database...")
 init_db()
 logger.info("Database initialized.")
