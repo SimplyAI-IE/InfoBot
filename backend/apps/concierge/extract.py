@@ -1,18 +1,18 @@
 import re
 from backend.models import SessionLocal
 from backend.memory import MemoryManager
-from typing import Any, Optional
+from typing import Any, Optional, Dict
 from backend.apps.base_app import BaseApp
 
+
 class ConciergeApp(BaseApp):
-    def extract_user_data(self, user_id: str, message: str):
-        # Minimal implementation for now
+    def extract_user_data(self, user_id: str, message: str) -> Dict[str, Any]:
         return {}
 
-    def block_response(self, message: str, profile: dict) -> str:
-        return ""
+    def block_response(self, message: str, profile: Optional[Dict[str, Any]]) -> Optional[str]:
+        return None
 
-    def wants_tips(self, profile: dict, message: str, history: list) -> bool:
+    def wants_tips(self, profile: Optional[Dict[str, Any]], message: str, history: list[Dict[str, str]]) -> bool:
         return False
 
     def tips_reply(self) -> str:
@@ -23,6 +23,13 @@ class ConciergeApp(BaseApp):
 
     def should_offer_tips(self, reply: str) -> bool:
         return "recommend" in reply.lower()
+
+    def format_user_context(self, profile: Optional[Dict[str, Any]]) -> str:
+        return f"Formatted context: {profile}"
+
+    def render_profile_field(self, field: str, profile: Optional[Dict[str, Any]]) -> str:
+        return f"{field}: {profile.get(field, 'N/A') if profile else 'N/A'}"
+
 
 
 def extract_user_data(user_id: str, msg: str) -> Optional[dict[str, Any]]:

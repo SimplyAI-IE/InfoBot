@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "infobot"
+version = "0.1.0"
+description = "Modular LLM orchestration framework"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "openai",
+    "sqlalchemy",
+    "python-dotenv",
+    "pytesseract",
+    "pyyaml",
+    "feedparser",
+    "beautifulsoup4",
+    "requests",
+    "tqdm"
+]
+
+[tool.setuptools.packages.find]
+where = ["backend"]
+include = ["backend*"]
+
+[tool.setuptools]
+package-dir = {"" = "backend"}
+
+[tool.setuptools.dynamic]
+version = {attr = "backend.__version__"}

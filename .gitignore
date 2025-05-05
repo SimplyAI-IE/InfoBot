@@ -32,3 +32,8 @@ backend/apps/concierge/readImages/*
 # Keep versioned files in cache/
 cache/*
 !cache/.gitkeep
+
+.vscode/
+
+.pyright/
+.mypy_cache/
