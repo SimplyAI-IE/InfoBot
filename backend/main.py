@@ -293,11 +293,10 @@ async def serve_index() -> FileResponse:
 
 
 @app.post("/respond")
-async def respond(request: Request) -> JSONResponse:  # ✅ Add return type
-    data = await request.json()
-    message = data.get("message", "")
-    user_id = data.get("user_id", "guest")
-    tone = data.get("tone", "neutral")
+async def respond(req: ChatRequest) -> JSONResponse:
+    message = req.message
+    user_id = req.user_id or "guest"
+    tone = req.tone or "neutral"
 
     return JSONResponse(
         content={
