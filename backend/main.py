@@ -17,6 +17,7 @@ from weasyprint import HTML
 
 from backend.apps.base_app import BaseApp
 from backend.apps.concierge.concierge_api import router as concierge_router
+from backend.apps.concierge.concierge_gpt import concierge_gpt_response
 from backend.apps.pension_guru.flow_engine import PensionFlow
 from backend.gpt_engine import get_gpt_response
 from backend.logging_config import setup_logging
@@ -284,9 +285,6 @@ async def forget_chat_history(request: Request) -> dict[str, str]:
     return {"status": "ok", "message": "Chat history and profile cleared."}
 
 
-
-
-
 @app.get("/")
 async def serve_index() -> FileResponse:
     file_path: str = os.path.join(static_dir, "index.html")
@@ -303,7 +301,7 @@ async def respond(req: ChatRequest) -> JSONResponse:
     tone = req.tone or "neutral"
 
     try:
-        reply = get_gpt_response(message, user_id, tone=tone)
+        reply = concierge_gpt_response(message, user_id, tone)
     except Exception as e:
         logger.error(f"GPT error for {user_id}: {e}", exc_info=True)
         reply = "Sorry, I had trouble answering that. Can you try again?"
