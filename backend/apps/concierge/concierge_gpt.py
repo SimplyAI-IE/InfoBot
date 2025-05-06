@@ -1,11 +1,8 @@
 from pathlib import Path
-
 from openai import OpenAI
-
 from backend.apps.concierge.ocr_cache import OCR_CACHE_DIR
 
 client = OpenAI()
-
 
 def get_combined_readable_image_text() -> str:
     texts: list[str] = []
@@ -19,14 +16,24 @@ def get_combined_readable_image_text() -> str:
 
 def concierge_gpt_response(message: str, user_id: str, tone: str = "") -> str:
     prompt_path = Path("backend/apps/concierge/prompt.txt")
+    links_path = Path("backend/apps/concierge/links.txt")
+
     try:
-        base_prompt = prompt_path.read_text(encoding="utf-8")
+        base_prompt = prompt_path.read_text(encoding="utf-8").strip()
     except Exception:
         base_prompt = "You are a helpful hotel concierge."
 
+    try:
+        links_text = links_path.read_text(encoding="utf-8").strip()
+    except Exception:
+        links_text = ""
+
     readable_image_text = get_combined_readable_image_text()
+
     system_prompt = (
-        f"{base_prompt.strip()}\n\nLocal image data:\n\n{readable_image_text.strip()}"
+        f"{base_prompt}\n\n"
+        f"Here are trusted reference links you can use in replies:\n{links_text}\n\n"
+        f"Local image data from signage, menus, or posts:\n\n{readable_image_text}"
     )
 
     try:
